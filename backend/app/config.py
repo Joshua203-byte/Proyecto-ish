@@ -87,9 +87,19 @@ CREDIT_PACKS = [
         "price_usd": 50.00,
         "hours": 120,  # 120 hours (includes 20 hour bonus)
         "credits": 60.00,  # 120 hours * $0.50/hour
-        "description": "Maximum value for intensive workloads",
+        "description": "Everything in Researcher + Unlimited Queueing & Custom Env Setup",
         "popular": False,
         "bonus_hours": 20,
+        "features": [
+            "DGX Spark Access",
+            "128GB Unified Memory",
+            "Real-time Logs",
+            "Priority Queue",
+            "API Access",
+            "Dedicated Support",
+            "Unlimited Queueing",
+            "Custom Env Setup"
+        ]
     },
 ]
 
