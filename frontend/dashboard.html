@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Home GPU Cloud</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/terminal.css">
+</head>
+
+<body class="dashboard-page">
+    <!-- Animated Background -->
+    <div class="bg-grid"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar glass-dark" id="sidebar">
+        <div class="sidebar-header">
+            <a href="index.html" class="sidebar-logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <rect x="4" y="8" width="32" height="24" rx="2" stroke="currentColor" stroke-width="2" />
+                        <path d="M12 16h4v8h-4z" fill="currentColor" opacity="0.8" />
+                        <path d="M18 14h4v10h-4z" fill="currentColor" />
+                        <path d="M24 12h4v12h-4z" fill="currentColor" opacity="0.8" />
+                    </svg>
+                </div>
+                <span class="logo-text">HOME<span class="accent">GPU</span></span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-section="overview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                <span>Overview</span>
+            </a>
+            <a href="#" class="nav-item" data-section="jobs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+                <span>Jobs</span>
+            </a>
+            <a href="#" class="nav-item" data-section="new-job">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span>New Job</span>
+            </a>
+            <a href="#" class="nav-item" data-section="wallet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" />
+                    <line x1="1" y1="10" x2="23" y2="10" />
+                    <circle cx="18" cy="15" r="1" />
+                </svg>
+                <span>Wallet</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card glass" id="userCard">
+                <div class="user-avatar">
+                    <span id="userInitial">?</span>
+                </div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Loading...</span>
+                    <span class="user-email" id="userEmail">...</span>
+                </div>
+                <button class="user-menu-btn" id="userMenuBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+            </div>
+            <div class="user-dropdown glass" id="userDropdown">
+                <a href="#" class="dropdown-item" id="settingsBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="dropdown-item danger" id="logoutBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Log Out</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                </button>
+                <h1 class="page-title" id="pageTitle">Overview</h1>
+            </div>
+            <div class="header-right">
+                <div class="credit-balance glass">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v12M8 10h8M8 14h6" />
+                    </svg>
+                    <span class="balance-amount" id="creditBalance">0.00</span>
+                    <span class="balance-label">credits</span>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="showSection('new-job')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    New Job
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="content-wrapper">
+            <!-- Overview Section -->
+            <section class="content-section active" id="section-overview">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card glass">
+                        <div class="stat-icon cyan">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="4" y="4" width="16" height="16" rx="2" />
+                                <path d="M9 9h6v6H9z" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="totalJobs">0</span>
+                            <span class="stat-label">Total Jobs</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="runningJobs">0</span>
+                            <span class="stat-label">Running</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 6v6l4 2" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="totalRuntime">0h</span>
+                            <span class="stat-label">GPU Hours</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon orange">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23" />
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">$<span id="totalSpent">0.00</span></span>
+                            <span class="stat-label">Total Spent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Jobs -->
+                <div class="card glass">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Jobs</h2>
+                        <a href="#" class="btn btn-ghost btn-sm" onclick="showSection('jobs')">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="jobs-list" id="recentJobsList">
+                            <div class="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                                    <path d="M9 9h6v6H9z" />
+                                    <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2" />
+                                </svg>
+                                <h3>No jobs yet</h3>
+                                <p>Start your first GPU job to see it here</p>
+                                <button class="btn btn-primary" onclick="showSection('new-job')">Create First
+                                    Job</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Jobs Section -->
+            <section class="content-section" id="section-jobs">
+                <div class="section-toolbar">
+                    <div class="tabs" id="jobTabs">
+                        <button class="tab active" data-filter="all">All</button>
+                        <button class="tab" data-filter="running">Running</button>
+                        <button class="tab" data-filter="completed">Completed</button>
+                        <button class="tab" data-filter="failed">Failed</button>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="showSection('new-job')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                            height="16">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        New Job
+                    </button>
+                </div>
+                <div class="jobs-grid" id="jobsGrid">
+                    <!-- Jobs will be loaded here -->
+                </div>
+            </section>
+
+            <!-- New Job Section -->
+            <section class="content-section" id="section-new-job">
+                <div class="new-job-container">
+                    <div class="new-job-form glass">
+                        <h2 class="form-section-title">Create New Job</h2>
+                        <p class="form-section-desc">Upload your Python script and dataset to run on our GPUs</p>
+
+                        <form id="newJobForm">
+                            <!-- Script Upload -->
+                            <div class="form-group">
+                                <label class="form-label">Python Script *</label>
+                                <div class="file-upload" id="scriptUpload">
+                                    <input type="file" name="script" accept=".py" required>
+                                    <div class="file-upload-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="17 8 12 3 7 8" />
+                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                        </svg>
+                                    </div>
+                                    <p class="file-upload-text">Drop your .py file here or click to browse</p>
+                                    <p class="file-upload-hint">Max 10MB</p>
+                                    <div class="file-preview" id="scriptPreview" style="display:none"></div>
+                                </div>
+                            </div>
+
+                            <!-- Dataset Upload -->
+                            <div class="form-group">
+                                <label class="form-label">Dataset (Optional)</label>
+                                <div class="file-upload" id="datasetUpload">
+                                    <input type="file" name="dataset" accept=".zip,.csv,.json,.pt,.pkl,.npy,.h5">
+                                    <div class="file-upload-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                    </div>
+                                    <p class="file-upload-text">Drop dataset file here (.zip, .csv, .json, etc)</p>
+                                    <p class="file-upload-hint">Max 500MB</p>
+                                    <div class="file-preview" id="datasetPreview" style="display:none"></div>
+                                </div>
+                            </div>
+
+                            <!-- Resource Configuration -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Memory Limit</label>
+                                    <select name="memory" class="form-select">
+                                        <option value="4g">4 GB</option>
+                                        <option value="8g" selected>8 GB</option>
+                                        <option value="16g">16 GB</option>
+                                        <option value="24g">24 GB (Full GPU)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Timeout</label>
+                                    <select name="timeout" class="form-select">
+                                        <option value="1800">30 minutes</option>
+                                        <option value="3600" selected>1 hour</option>
+                                        <option value="7200">2 hours</option>
+                                        <option value="14400">4 hours</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Cost Estimate -->
+                            <div class="cost-estimate glass">
+                                <div class="cost-row">
+                                    <span>Estimated Cost:</span>
+                                    <span class="cost-value" id="estimatedCost">~1.0 credits/min</span>
+                                </div>
+                                <div class="cost-row">
+                                    <span>Your Balance:</span>
+                                    <span class="cost-balance" id="yourBalance">0.00 credits</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg btn-block glow-effect">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20"
+                                    height="20">
+                                    <polygon points="5 3 19 12 5 21 5 3" />
+                                </svg>
+                                <span>Launch Job</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- GPU Info -->
+                    <div class="gpu-info glass-dark">
+                        <h3>GPU Specifications</h3>
+                        <div class="gpu-spec">
+                            <span class="spec-label">Model</span>
+                            <span class="spec-value">NVIDIA RTX 4090</span>
+                        </div>
+                        <div class="gpu-spec">
+                            <span class="spec-label">VRAM</span>
+                            <span class="spec-value">24 GB GDDR6X</span>
+                        </div>
+                        <div class="gpu-spec">
+                            <span class="spec-label">CUDA Cores</span>
+                            <span class="spec-value">16,384</span>
+                        </div>
+                        <div class="gpu-spec">
+                            <span class="spec-label">CUDA Version</span>
+                            <span class="spec-value">12.1</span>
+                        </div>
+                        <div class="gpu-spec">
+                            <span class="spec-label">PyTorch</span>
+                            <span class="spec-value">2.2.0</span>
+                        </div>
+                        <div class="gpu-spec">
+                            <span class="spec-label">Python</span>
+                            <span class="spec-value">3.10</span>
+                        </div>
+                        <hr style="border-color: var(--glass-border); margin: 1rem 0;">
+                        <p class="gpu-note">Pre-installed: PyTorch, TensorFlow, Transformers, Pandas, NumPy, and 50+ ML
+                            libraries</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet Section -->
+            <section class="content-section" id="section-wallet">
+                <div class="wallet-container">
+                    <!-- Balance Card -->
+                    <div class="balance-card glass-dark">
+                        <div class="balance-header">
+                            <span class="balance-label">Available Balance</span>
+                            <div class="balance-status">
+                                <span class="status-dot online"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                        <div class="balance-amount-large">
+                            <span class="currency">$</span>
+                            <span id="walletBalance">0</span>
+                            <span class="decimals" id="walletDecimals">.00</span>
+                        </div>
+                        <div class="balance-actions">
+                            <button class="btn btn-primary glow-effect" id="topUpBtn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18"
+                                    height="18">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Add Credits
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Transactions -->
+                    <div class="transactions-card glass">
+                        <div class="card-header">
+                            <h2 class="card-title">Transaction History</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="transactions-list" id="transactionsList">
+                                <!-- Transactions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Top Up Modal -->
+    <div class="modal-overlay" id="topUpModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Credits</h3>
+                <button class="modal-close" onclick="closeModal('topUpModal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="credit-options">
+                    <label class="credit-option">
+                        <input type="radio" name="credit_amount" value="10" checked>
+                        <div class="credit-option-content glass">
+                            <span class="credit-amount">$10</span>
+                            <span class="credit-label">10 GPU hours</span>
+                        </div>
+                    </label>
+                    <label class="credit-option">
+                        <input type="radio" name="credit_amount" value="25">
+                        <div class="credit-option-content glass">
+                            <span class="credit-amount">$25</span>
+                            <span class="credit-label">25 GPU hours</span>
+                        </div>
+                    </label>
+                    <label class="credit-option popular">
+                        <input type="radio" name="credit_amount" value="50">
+                        <div class="credit-option-content glass">
+                            <span class="popular-badge">Best Value</span>
+                            <span class="credit-amount">$50</span>
+                            <span class="credit-label">55 GPU hours</span>
+                        </div>
+                    </label>
+                    <label class="credit-option">
+                        <input type="radio" name="credit_amount" value="100">
+                        <div class="credit-option-content glass">
+                            <span class="credit-amount">$100</span>
+                            <span class="credit-label">115 GPU hours</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('topUpModal')">Cancel</button>
+                <button class="btn btn-primary glow-effect" id="confirmTopUp">Add Credits</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+
+</html>

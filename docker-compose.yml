@@ -1,0 +1,79 @@
+# Docker Compose for Nodo A (Controller)
+# Development environment
+
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: homegpu-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-homegpu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-homegpu}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-homegpu}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: homegpu-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: homegpu-api
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - WORKER_SECRET=${WORKER_SECRET:-dev-worker-secret}
+    volumes:
+      - ./backend:/app
+      - ${NFS_MOUNT_PATH:-/mnt/home-gpu-cloud}:/mnt/home-gpu-cloud
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: homegpu-celery-beat
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks.celery_app beat -l info
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,593 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   Keyframes and transitions for the futuristic UI
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────────────
+   KEYFRAMES
+   ───────────────────────────────────────────────────────────────────────────────── */
+
+/* Pulse animation for status dots */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+/* Glow pulse for background */
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(2%, 3%);
+    }
+
+    50% {
+        transform: translate(-1%, 2%);
+    }
+
+    75% {
+        transform: translate(1%, -2%);
+    }
+}
+
+/* Floating animation for cards */
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    25% {
+        transform: translateY(-10px) rotate(1deg);
+    }
+
+    75% {
+        transform: translateY(5px) rotate(-1deg);
+    }
+}
+
+/* Shimmer effect for progress bars and skeletons */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Spinner rotation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Typing cursor blink */
+@keyframes blink {
+
+    0%,
+    50% {
+        border-color: var(--accent-cyan);
+    }
+
+    51%,
+    100% {
+        border-color: transparent;
+    }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Fade in up animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade in down animation */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Fade in left animation */
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Fade in right animation */
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Gradient shift animation */
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Glow animation for buttons and accents */
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(139, 92, 246, 0.5);
+    }
+}
+
+/* Border line animation */
+@keyframes borderLine {
+    0% {
+        left: 0;
+        width: 0;
+    }
+
+    50% {
+        left: 0;
+        width: 100%;
+    }
+
+    100% {
+        left: 100%;
+        width: 0;
+    }
+}
+
+/* Data flow animation */
+@keyframes dataFlow {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 100% 0%;
+    }
+}
+
+/* Ripple effect */
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Number count up animation */
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Particle float animation */
+@keyframes particleFloat {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--tx, 100px), var(--ty, -200px)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Terminal cursor */
+@keyframes terminalCursor {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Scan line effect */
+@keyframes scanLine {
+    0% {
+        top: -10%;
+    }
+
+    100% {
+        top: 110%;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────────
+   ANIMATION UTILITY CLASSES
+   ───────────────────────────────────────────────────────────────────────────────── */
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.6s ease forwards;
+}
+
+.animate-fade-in-left {
+    animation: fadeInLeft 0.6s ease forwards;
+}
+
+.animate-fade-in-right {
+    animation: fadeInRight 0.6s ease forwards;
+}
+
+.animate-scale-in {
+    animation: scaleIn 0.4s ease forwards;
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Stagger animations with delays */
+.stagger-1 {
+    animation-delay: 0.1s;
+}
+
+.stagger-2 {
+    animation-delay: 0.2s;
+}
+
+.stagger-3 {
+    animation-delay: 0.3s;
+}
+
+.stagger-4 {
+    animation-delay: 0.4s;
+}
+
+.stagger-5 {
+    animation-delay: 0.5s;
+}
+
+.stagger-6 {
+    animation-delay: 0.6s;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────────
+   SCROLL ANIMATIONS (Intersection Observer)
+   ───────────────────────────────────────────────────────────────────────────────── */
+
+[data-animate] {
+    opacity: 0;
+}
+
+[data-animate="fade-in"].is-visible {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+[data-animate="fade-in-up"].is-visible {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+[data-animate="fade-in-down"].is-visible {
+    animation: fadeInDown 0.6s ease forwards;
+}
+
+[data-animate="fade-in-left"].is-visible {
+    animation: fadeInLeft 0.6s ease forwards;
+}
+
+[data-animate="fade-in-right"].is-visible {
+    animation: fadeInRight 0.6s ease forwards;
+}
+
+[data-animate="scale-in"].is-visible {
+    animation: scaleIn 0.5s ease forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────────
+   SPECIAL EFFECTS
+   ───────────────────────────────────────────────────────────────────────────────── */
+
+/* Glitch effect for text */
+.glitch {
+    position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glitch::before {
+    left: 2px;
+    text-shadow: -2px 0 #ff00ff;
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch1 5s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+    left: -2px;
+    text-shadow: -2px 0 #00ff00;
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch2 5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch1 {
+    0% {
+        clip: rect(31px, 9999px, 94px, 0);
+    }
+
+    20% {
+        clip: rect(62px, 9999px, 42px, 0);
+    }
+
+    40% {
+        clip: rect(16px, 9999px, 78px, 0);
+    }
+
+    60% {
+        clip: rect(87px, 9999px, 29px, 0);
+    }
+
+    80% {
+        clip: rect(45px, 9999px, 66px, 0);
+    }
+
+    100% {
+        clip: rect(11px, 9999px, 88px, 0);
+    }
+}
+
+@keyframes glitch2 {
+    0% {
+        clip: rect(65px, 9999px, 19px, 0);
+    }
+
+    20% {
+        clip: rect(33px, 9999px, 71px, 0);
+    }
+
+    40% {
+        clip: rect(88px, 9999px, 52px, 0);
+    }
+
+    60% {
+        clip: rect(14px, 9999px, 95px, 0);
+    }
+
+    80% {
+        clip: rect(57px, 9999px, 38px, 0);
+    }
+
+    100% {
+        clip: rect(82px, 9999px, 26px, 0);
+    }
+}
+
+/* Neon text effect */
+.neon-text {
+    text-shadow:
+        0 0 5px var(--accent-cyan),
+        0 0 10px var(--accent-cyan),
+        0 0 20px var(--accent-cyan),
+        0 0 40px var(--accent-cyan);
+}
+
+/* Scanning line overlay */
+.scan-lines::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+            transparent 50%,
+            rgba(0, 0, 0, 0.1) 51%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Matrix rain background (optional) */
+.matrix-bg {
+    background:
+        linear-gradient(180deg, transparent, var(--bg-primary) 80%),
+        repeating-linear-gradient(0deg,
+            transparent,
+            transparent 2px,
+            rgba(139, 92, 246, 0.03) 2px,
+            rgba(139, 92, 246, 0.03) 4px);
+}
+
+/* Particle container */
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    opacity: 0;
+    animation: particleFloat 10s linear infinite;
+}
+
+/* Hover lift effect */
+.hover-lift {
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Border gradient animation */
+.border-gradient {
+    position: relative;
+}
+
+.border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-primary);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+/* Typewriter effect class */
+.typing {
+    overflow: hidden;
+    white-space: nowrap;
+    animation: typing 3.5s steps(40, end);
+}
+
+@keyframes typing {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────────
+   REDUCED MOTION
+   For users who prefer reduced motion
+   ───────────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

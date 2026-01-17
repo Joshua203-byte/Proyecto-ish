@@ -1,0 +1,28 @@
+"""Shared constants and types."""
+
+# Job statuses
+JOB_STATUS_PENDING = "pending"
+JOB_STATUS_PREPARING = "preparing"
+JOB_STATUS_RUNNING = "running"
+JOB_STATUS_COMPLETED = "completed"
+JOB_STATUS_FAILED = "failed"
+JOB_STATUS_CANCELLED = "cancelled"
+JOB_STATUS_KILLED_NO_CREDITS = "killed_no_credits"
+
+# Transaction types
+TRANSACTION_CREDIT = "credit"
+TRANSACTION_DEBIT = "debit"
+TRANSACTION_REFUND = "refund"
+TRANSACTION_RESERVATION = "reservation"
+TRANSACTION_RELEASE = "release"
+
+# Resource limits
+DEFAULT_MEMORY_LIMIT = "8g"
+DEFAULT_CPU_COUNT = 4
+DEFAULT_TIMEOUT_SECONDS = 3600
+MAX_TIMEOUT_SECONDS = 14400
+MAX_UPLOAD_SIZE_MB = 500
+
+# Billing
+CREDITS_PER_MINUTE = 1.0
+MINIMUM_BALANCE_TO_START = 10.0

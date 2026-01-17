@@ -1,0 +1,119 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Home-GPU-Cloud Standard ML Image
+# Version: standard-v1
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This is the ONLY image users can run. They upload .py scripts + datasets,
+# not custom Docker images. This provides security and reproducibility.
+#
+# Build: docker build -t home-gpu-cloud:standard-v1 -f Dockerfile.standard .
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 1: Base CUDA Runtime
+# ───────────────────────────────────────────────────────────────────────────────
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS base
+
+# Prevent interactive prompts during apt install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# NVIDIA Container Toolkit environment variables
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+# Python environment
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONIOENCODING=UTF-8
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 2: System Dependencies
+# ───────────────────────────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Python
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    # System utilities
+    git \
+    curl \
+    wget \
+    procps \
+    # Process management (for signal handling)
+    tini \
+    # Compression tools (for datasets)
+    unzip \
+    tar \
+    gzip \
+    # Locale support
+    locales \
+    && locale-gen en_US.UTF-8 \
+    # Cleanup apt cache to reduce image size
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Set locale
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
+
+# Make python3 the default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 \
+    && update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 3: Python ML Dependencies
+# ───────────────────────────────────────────────────────────────────────────────
+WORKDIR /app
+
+# Copy requirements first (Docker layer caching)
+COPY requirements.standard.txt /tmp/requirements.txt
+
+# Install PyTorch with CUDA support + ML libraries
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install -r /tmp/requirements.txt \
+    # Cleanup pip cache
+    && pip cache purge \
+    && rm -rf ~/.cache/pip /tmp/*
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 4: Job Wrapper Setup
+# ───────────────────────────────────────────────────────────────────────────────
+# Copy the job wrapper script (entrypoint)
+COPY job_wrapper.py /opt/home-gpu-cloud/job_wrapper.py
+RUN chmod +x /opt/home-gpu-cloud/job_wrapper.py
+
+# Create non-root user for security (but allow GPU access)
+RUN useradd -m -s /bin/bash -u 1000 gpuuser \
+    && chown -R gpuuser:gpuuser /app
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 5: Final Configuration
+# ───────────────────────────────────────────────────────────────────────────────
+# Working directory for user scripts
+WORKDIR /workspace
+
+# Create standard directories
+RUN mkdir -p /workspace/input /workspace/output \
+    && chown -R gpuuser:gpuuser /workspace
+
+# Switch to non-root user
+USER gpuuser
+
+# Use tini as init process (proper signal handling)
+ENTRYPOINT ["/usr/bin/tini", "--", "python", "/opt/home-gpu-cloud/job_wrapper.py"]
+
+# Default command shows help
+CMD ["--help"]
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Metadata
+# ───────────────────────────────────────────────────────────────────────────────
+LABEL maintainer="Home-GPU-Cloud Team"
+LABEL version="standard-v1"
+LABEL description="Standard ML environment with PyTorch 2.x, CUDA 12.1"
+LABEL cuda.version="12.1"
+LABEL python.version="3.10"
+LABEL pytorch.version="2.2.0"

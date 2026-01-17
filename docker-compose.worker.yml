@@ -1,0 +1,29 @@
+# Docker Compose for Nodo C (GPU Worker)
+# Deploy on the Mini PC with NVIDIA GPU
+
+version: '3.8'
+
+services:
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: homegpu-worker
+    environment:
+      - REDIS_URL=${REDIS_URL:-redis://controller.local:6379/0}
+      - BACKEND_URL=${BACKEND_URL:-http://controller.local:8000}
+      - WORKER_SECRET=${WORKER_SECRET}
+      - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
+    volumes:
+      - ./worker:/app
+      - /mnt/home-gpu-cloud:/mnt/home-gpu-cloud
+      - /var/run/docker.sock:/var/run/docker.sock  # DinD access
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    privileged: true  # Required for Docker-in-Docker
+    command: celery -A worker.celery_app worker -l info -Q gpu_jobs -c 1

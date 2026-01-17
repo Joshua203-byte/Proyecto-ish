@@ -1,0 +1,267 @@
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TERMINAL COMPONENT STYLES
+   Live log streaming terminal display
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.terminal {
+    background: #0d0d0d;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+}
+
+/* Terminal Header */
+.terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.terminal-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.terminal-dot.red {
+    background: #ff5f56;
+}
+
+.terminal-dot.yellow {
+    background: #ffbd2e;
+}
+
+.terminal-dot.green {
+    background: #27c93f;
+}
+
+.terminal-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.terminal-status-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.terminal-status-icon.running {
+    background: var(--accent-cyan);
+    box-shadow: 0 0 10px var(--accent-cyan);
+    animation: pulse 2s infinite;
+}
+
+.terminal-status-icon.completed {
+    background: var(--accent-green);
+}
+
+.terminal-status-icon.failed {
+    background: #ef4444;
+}
+
+.terminal-status-icon.pending {
+    background: var(--accent-orange);
+}
+
+.terminal-job-id {
+    color: var(--text-secondary);
+}
+
+.terminal-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.terminal-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+}
+
+.terminal-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.terminal-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Terminal Body */
+.terminal-body {
+    height: 400px;
+    overflow: hidden;
+    position: relative;
+}
+
+.terminal-output {
+    height: 100%;
+    overflow-y: auto;
+    padding: var(--space-lg);
+    scroll-behavior: smooth;
+}
+
+.terminal-output::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terminal-output::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.terminal-output::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.terminal-output::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Terminal Lines */
+.terminal-line {
+    display: flex;
+    gap: var(--space-md);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.terminal-line.log {
+    color: #e0e0e0;
+}
+
+.terminal-line.error {
+    color: #f87171;
+}
+
+.terminal-line.warning {
+    color: #fbbf24;
+}
+
+.terminal-line.system {
+    color: var(--accent-cyan);
+    font-style: italic;
+}
+
+.terminal-line.status {
+    color: var(--accent-purple);
+}
+
+.terminal-timestamp {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.terminal-content {
+    flex: 1;
+}
+
+/* Terminal Footer */
+.terminal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-lg);
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.terminal-connection-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* Empty Terminal State */
+.terminal-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.terminal-empty svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-md);
+    opacity: 0.5;
+}
+
+/* Scan Line Effect (optional) */
+.terminal.scan-lines .terminal-body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+            transparent 50%,
+            rgba(0, 0, 0, 0.1) 51%);
+    background-size: 100% 4px;
+    pointer-events: none;
+}
+
+/* Typing Cursor Animation */
+.terminal-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--accent-green);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+}
+
+/* Job Log Modal Specific */
+.log-modal .terminal {
+    margin: 0;
+}
+
+.log-modal .terminal-body {
+    height: 60vh;
+    max-height: 500px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .terminal-body {
+        height: 300px;
+    }
+
+    .terminal-output {
+        padding: var(--space-md);
+    }
+
+    .terminal-line {
+        font-size: 0.8rem;
+    }
+}
