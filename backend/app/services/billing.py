@@ -23,6 +23,20 @@ class OptimisticLockError(Exception):
     pass
 
 
+def calculate_cost(duration_seconds: int) -> Decimal:
+    """
+    Calculate GPU usage cost based on duration.
+    
+    Args:
+        duration_seconds: Runtime in seconds
+        
+    Returns:
+        Cost in USD based on $0.50/hour rate
+    """
+    price_per_second = Decimal(str(settings.PRICE_PER_SECOND))
+    return price_per_second * Decimal(str(duration_seconds))
+
+
 class BillingService:
     """Service for wallet and billing operations."""
     
