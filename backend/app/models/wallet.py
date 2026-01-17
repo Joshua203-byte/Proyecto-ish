@@ -1,15 +1,15 @@
 """
-Wallet model for credit balance management.
-Implements optimistic locking for atomic balance operations.
+Wallet model for credit management.
 """
 import uuid
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import Column, Numeric, DateTime, Integer, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, DateTime, Integer, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.config import settings
+from app.utils.types import GUID
 
 
 class Wallet(Base):
@@ -23,9 +23,9 @@ class Wallet(Base):
     
     __tablename__ = "wallets"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     user_id = Column(
-        UUID(as_uuid=True), 
+        GUID(), 
         ForeignKey("users.id", ondelete="CASCADE"),
         unique=True,
         nullable=False

@@ -4,11 +4,11 @@ Job model for tracking GPU compute jobs.
 import uuid
 from decimal import Decimal
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Integer, Text, Numeric, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, Integer, Text, Numeric, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.utils.types import GUID
 
 
 class JobStatus:
@@ -27,9 +27,9 @@ class Job(Base):
     
     __tablename__ = "jobs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     user_id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True
@@ -48,8 +48,8 @@ class Job(Base):
     container_id = Column(String(64), nullable=True)
     docker_image = Column(String(255), default="nvidia/cuda:12.1-runtime-ubuntu22.04")
     
-    # Resource configuration (container limits)
-    resource_config = Column(JSONB, default=lambda: {
+    # Resource configuration (container limits) - use generic JSON for SQLite compat
+    resource_config = Column(JSON, default=lambda: {
         "memory_limit": "8g",
         "cpu_count": 4,
         "gpu_memory_fraction": 1.0,

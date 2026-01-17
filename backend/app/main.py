@@ -17,15 +17,24 @@ from app.services.websocket_manager import manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
-    # Startup: Start WebSocket pub/sub listener
-    pubsub_task = asyncio.create_task(manager.start_pubsub_listener())
+    # Startup: Initialize database tables
+    from app.database import init_db
+    init_db()
+    
+    # Start WebSocket pub/sub listener (ignore Redis errors for local dev)
+    try:
+        pubsub_task = asyncio.create_task(manager.start_pubsub_listener())
+    except Exception as e:
+        print(f"⚠️  Redis not available: {e}")
+        pubsub_task = None
     
     yield
     
     # Shutdown: Stop pub/sub listener and disconnect Redis
-    await manager.stop_pubsub_listener()
-    await manager.disconnect_redis()
-    pubsub_task.cancel()
+    if pubsub_task:
+        await manager.stop_pubsub_listener()
+        await manager.disconnect_redis()
+        pubsub_task.cancel()
 
 
 # Initialize FastAPI app
