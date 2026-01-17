@@ -1,5 +1,5 @@
 # Docker Compose for Nodo C (GPU Worker)
-# Deploy on the Mini PC with NVIDIA GPU
+# NVIDIA DGX Spark with Grace Blackwell (ARM64)
 
 version: '3.8'
 
@@ -9,6 +9,8 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     container_name: homegpu-worker
+    # IMPORTANT: DGX Spark runs ARM64 architecture
+    platform: linux/arm64
     environment:
       - REDIS_URL=${REDIS_URL:-redis://controller.local:6379/0}
       - BACKEND_URL=${BACKEND_URL:-http://controller.local:8000}
@@ -17,13 +19,15 @@ services:
     volumes:
       - ./worker:/app
       - /mnt/home-gpu-cloud:/mnt/home-gpu-cloud
-      - /var/run/docker.sock:/var/run/docker.sock  # DinD access
+      - /var/run/docker.sock:/var/run/docker.sock # DinD access
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]
-    privileged: true  # Required for Docker-in-Docker
+              capabilities: [ gpu ]
+    # DGX Spark has 128GB unified memory - no artificial limits
+    # Memory is shared between CPU and Blackwell GPU
+    privileged: true # Required for Docker-in-Docker
     command: celery -A worker.celery_app worker -l info -Q gpu_jobs -c 1

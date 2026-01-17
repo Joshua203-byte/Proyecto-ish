@@ -1,8 +1,9 @@
 """
 GPU Tasks - Celery tasks for GPU job execution.
-Runs on Nodo C (GPU Worker).
+Runs on Nodo C (GPU Worker) - NVIDIA DGX Spark (Grace Blackwell ARM64).
 """
 import time
+import platform
 import logging
 import httpx
 from datetime import datetime, timedelta
@@ -15,6 +16,34 @@ from worker.docker_manager import DockerManager, ContainerConfig
 from worker.config import settings
 
 logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════════
+# ARCHITECTURE VERIFICATION (DGX Spark ARM64)
+# ═══════════════════════════════════════════════════════════════════
+def log_system_info():
+    """Log system architecture info at startup."""
+    arch = platform.machine()
+    system = platform.system()
+    python_version = platform.python_version()
+    
+    logger.info("=" * 60)
+    logger.info("HOME-GPU-CLOUD WORKER STARTUP")
+    logger.info("=" * 60)
+    logger.info(f"  Architecture: {arch}")
+    logger.info(f"  System: {system}")
+    logger.info(f"  Python: {python_version}")
+    
+    if arch == "aarch64":
+        logger.info("  ✓ Running on ARM64 (DGX Spark / Grace Blackwell)")
+    elif arch == "x86_64":
+        logger.warning("  ⚠ Running on x86_64 - Not DGX Spark target architecture!")
+    else:
+        logger.warning(f"  ⚠ Unexpected architecture: {arch}")
+    
+    logger.info("=" * 60)
+
+# Log on module import
+log_system_info()
 
 
 class GPUTask(Task):
@@ -40,9 +69,9 @@ def execute_gpu_job(
     job_id: str,
     user_id: str,
     script_name: str = "train.py",
-    image: str = "nvidia/cuda:12.1-runtime-ubuntu22.04",
-    memory_limit: str = "8g",
-    cpu_count: int = 4,
+    image: str = "home-gpu-cloud:standard-v2",  # ARM64 image
+    memory_limit: str = "120g",  # DGX Spark unified memory
+    cpu_count: int = 12,  # Grace CPU cores
     timeout_seconds: int = 3600,
 ) -> dict:
     """

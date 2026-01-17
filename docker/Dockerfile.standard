@@ -1,18 +1,29 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # Home-GPU-Cloud Standard ML Image
-# Version: standard-v1
+# Version: standard-v2 (DGX Spark / Grace Blackwell ARM64)
 # ═══════════════════════════════════════════════════════════════════════════════
 #
-# This is the ONLY image users can run. They upload .py scripts + datasets,
-# not custom Docker images. This provides security and reproducibility.
+# NVIDIA DGX Spark with Grace Blackwell (GB10) Superchip:
+# - Architecture: ARM64 (aarch64)
+# - Memory: 128GB Unified LPDDR5X (shared CPU/GPU)
+# - GPU: NVIDIA Blackwell (Integrated)
+# - OS: Ubuntu 22.04 LTS (ARM64)
 #
-# Build: docker build -t home-gpu-cloud:standard-v1 -f Dockerfile.standard .
+# Build: docker build --platform linux/arm64 -t home-gpu-cloud:standard-v2 -f Dockerfile.standard .
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ───────────────────────────────────────────────────────────────────────────────
-# STAGE 1: Base CUDA Runtime
+# STAGE 1: Base CUDA Runtime (ARM64 / Grace Blackwell)
 # ───────────────────────────────────────────────────────────────────────────────
-FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS base
+# Use NVIDIA L4T (Linux for Tegra) or NGC containers for ARM64
+# For DGX Spark with Blackwell, use the latest CUDA 12.x ARM64 image
+FROM nvcr.io/nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS base
+
+# Verify architecture at build time
+RUN echo "Building for architecture: $(uname -m)" && \
+    if [ "$(uname -m)" != "aarch64" ]; then \
+    echo "WARNING: Not building on ARM64 architecture!"; \
+    fi
 
 # Prevent interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
@@ -29,13 +40,18 @@ ENV PIP_NO_CACHE_DIR=1
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # ───────────────────────────────────────────────────────────────────────────────
-# STAGE 2: System Dependencies
+# STAGE 2: System Dependencies (ARM64)
 # ───────────────────────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Python
+    # Python (ARM64 native)
     python3.10 \
     python3.10-venv \
+    python3.10-dev \
     python3-pip \
+    # Build tools (needed for some ARM64 wheel compilation)
+    build-essential \
+    cmake \
+    ninja-build \
     # System utilities
     git \
     curl \
@@ -49,6 +65,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gzip \
     # Locale support
     locales \
+    # HDF5 for ARM64 (h5py)
+    libhdf5-dev \
+    # OpenCV dependencies for ARM64
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && locale-gen en_US.UTF-8 \
     # Cleanup apt cache to reduce image size
     && apt-get clean \
@@ -64,14 +85,15 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 \
     && update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
 
 # ───────────────────────────────────────────────────────────────────────────────
-# STAGE 3: Python ML Dependencies
+# STAGE 3: Python ML Dependencies (ARM64 + Blackwell)
 # ───────────────────────────────────────────────────────────────────────────────
 WORKDIR /app
 
 # Copy requirements first (Docker layer caching)
 COPY requirements.standard.txt /tmp/requirements.txt
 
-# Install PyTorch with CUDA support + ML libraries
+# Install PyTorch with CUDA support for ARM64 + ML libraries
+# Using NVIDIA's PyPI index for ARM64-optimized wheels
 RUN pip install --upgrade pip setuptools wheel \
     && pip install -r /tmp/requirements.txt \
     # Cleanup pip cache
@@ -112,8 +134,10 @@ CMD ["--help"]
 # Metadata
 # ───────────────────────────────────────────────────────────────────────────────
 LABEL maintainer="Home-GPU-Cloud Team"
-LABEL version="standard-v1"
-LABEL description="Standard ML environment with PyTorch 2.x, CUDA 12.1"
-LABEL cuda.version="12.1"
+LABEL version="standard-v2"
+LABEL description="Standard ML environment for DGX Spark (Grace Blackwell ARM64)"
+LABEL architecture="linux/arm64"
+LABEL cuda.version="12.4"
 LABEL python.version="3.10"
-LABEL pytorch.version="2.2.0"
+LABEL pytorch.version="2.5.0"
+LABEL hardware="NVIDIA DGX Spark (GB10)"

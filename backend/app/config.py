@@ -29,13 +29,14 @@ class Settings(BaseSettings):
     NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
     MAX_UPLOAD_SIZE_MB: int = 500
     
-    # Billing
-    CREDITS_PER_MINUTE: float = 1.0
-    MINIMUM_BALANCE_TO_START: float = 10.0
+    # Billing (DGX Spark pricing: $0.50 USD/hour = $0.00833/minute)
+    CREDITS_PER_MINUTE: float = 0.00833  # $0.50/hour in credits per minute
+    MINIMUM_BALANCE_TO_START: float = 1.0  # Minimum $1.00 to start
     
-    # Resource Defaults
-    DEFAULT_MEMORY_LIMIT: str = "8g"
-    DEFAULT_CPU_COUNT: int = 4
+    # Resource Defaults (DGX Spark: 128GB unified memory)
+    # Recommend max 120GB to leave headroom for system
+    DEFAULT_MEMORY_LIMIT: str = "120g"
+    DEFAULT_CPU_COUNT: int = 12  # Grace CPU has many ARM cores
     DEFAULT_TIMEOUT_SECONDS: int = 3600
     MAX_TIMEOUT_SECONDS: int = 14400
     

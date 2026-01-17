@@ -15,12 +15,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ContainerConfig:
-    """Configuration for a user's GPU container."""
+    """
+    Configuration for a user's GPU container.
+    
+    DGX Spark (Grace Blackwell GB10) Notes:
+    - 128GB Unified Memory (LPDDR5X) shared between CPU and GPU
+    - Memory limit can be set up to ~120GB (leaving headroom for system)
+    - No separate GPU VRAM - it's all unified memory
+    """
     job_id: str
-    image: str = "nvidia/cuda:12.1-runtime-ubuntu22.04"
-    memory_limit: str = "8g"
-    cpu_count: int = 4
-    gpu_count: int = -1  # -1 = all GPUs
+    image: str = "home-gpu-cloud:standard-v2"
+    memory_limit: str = "120g"  # DGX Spark: Allow up to 120GB of unified memory
+    cpu_count: int = 12  # Grace CPU has many ARM cores
+    gpu_count: int = -1  # -1 = all GPUs (Blackwell integrated GPU)
     timeout_seconds: int = 3600
     network_disabled: bool = True  # SECURITY: No network access
 
@@ -53,18 +60,20 @@ class DockerManager:
             logger.error(f"Error cleaning up containers: {e}")
     
     def verify_gpu_runtime(self) -> bool:
-        """Verify that NVIDIA GPU runtime is available."""
+        """Verify that NVIDIA GPU runtime is available on DGX Spark."""
         try:
             result = self.client.containers.run(
-                "nvidia/cuda:12.1-base-ubuntu22.04",
-                "nvidia-smi",
+                "nvcr.io/nvidia/cuda:12.4.0-base-ubuntu22.04",
+                "nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv",
                 device_requests=[
                     docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
                 ],
                 remove=True,
+                platform="linux/arm64",
                 timeout=30
             )
-            logger.info("✓ NVIDIA GPU runtime verified")
+            logger.info("✓ NVIDIA GPU runtime verified (DGX Spark / Blackwell)")
+            logger.info(f"GPU Info: {result.decode('utf-8').strip()}")
             return True
         except docker.errors.ContainerError as e:
             logger.error(f"✗ GPU runtime not available: {e}")

@@ -1,73 +1,89 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # Home-GPU-Cloud Standard Environment Requirements
-# Version: standard-v1
+# Version: standard-v2 (DGX Spark / Grace Blackwell ARM64)
 # Last Updated: 2026-01
 # ═══════════════════════════════════════════════════════════════════════════════
 # 
-# These versions are tested for compatibility with CUDA 12.1 on x86_64.
-# Do not modify unless you've tested GPU functionality.
+# These versions are tested for NVIDIA DGX Spark with Grace Blackwell (GB10):
+# - Architecture: ARM64 (aarch64)
+# - CUDA: 12.4+
+# - Memory: 128GB Unified
+#
+# IMPORTANT: Some packages require NVIDIA's PyPI index for ARM64 wheels
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # ───────────────────────────────────────────────────────────────────────────────
-# PyTorch Ecosystem (CUDA 12.1)
+# PyTorch Ecosystem (ARM64 / NVIDIA Grace-Blackwell)
 # ───────────────────────────────────────────────────────────────────────────────
---extra-index-url https://download.pytorch.org/whl/cu121
+# Use NVIDIA's official PyPI index for ARM64-optimized wheels
+--extra-index-url https://pypi.nvidia.com
+--extra-index-url https://download.pytorch.org/whl/cu124
 
-torch==2.2.0+cu121
-torchvision==0.17.0+cu121
-torchaudio==2.2.0+cu121
+# PyTorch 2.5+ with native ARM64 + Blackwell support
+torch>=2.5.0
+torchvision>=0.20.0
+torchaudio>=2.5.0
 
 # ───────────────────────────────────────────────────────────────────────────────
-# Core Scientific Computing
+# Core Scientific Computing (ARM64 native wheels available)
 # ───────────────────────────────────────────────────────────────────────────────
-numpy==1.26.3
-pandas==2.1.4
-scipy==1.11.4
+numpy>=1.26.0
+pandas>=2.1.0
+scipy>=1.11.0
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Machine Learning
 # ───────────────────────────────────────────────────────────────────────────────
-scikit-learn==1.3.2
-xgboost==2.0.3
+scikit-learn>=1.3.0
+xgboost>=2.0.0
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Deep Learning Utilities
 # ───────────────────────────────────────────────────────────────────────────────
 # Progress bars
-tqdm==4.66.1
+tqdm>=4.66.0
 
-# Image processing
-Pillow==10.2.0
-opencv-python-headless==4.8.1.78
+# Image processing (use headless for ARM64 compatibility)
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
 
 # Visualization (headless for server)
-matplotlib==3.8.2
-seaborn==0.13.1
+matplotlib>=3.8.0
+seaborn>=0.13.0
 
 # ───────────────────────────────────────────────────────────────────────────────
-# Data Handling
+# Data Handling (ARM64 compatible)
 # ───────────────────────────────────────────────────────────────────────────────
-h5py==3.10.0
-pyarrow==14.0.2
+h5py>=3.10.0
+pyarrow>=14.0.0
 
 # ───────────────────────────────────────────────────────────────────────────────
-# Hugging Face Ecosystem (Common for NLP/CV)
+# Hugging Face Ecosystem (ARM64 compatible)
 # ───────────────────────────────────────────────────────────────────────────────
-transformers==4.37.2
-datasets==2.16.1
-accelerate==0.26.1
-tokenizers==0.15.1
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.28.0
+tokenizers>=0.15.0
+
+# ───────────────────────────────────────────────────────────────────────────────
+# LLM Optimization (ARM64 / Blackwell optimized)
+# ───────────────────────────────────────────────────────────────────────────────
+# NOTE: These packages have ARM64-specific builds from NVIDIA
+# flash-attn requires compilation with correct arch flags
+
+# NVIDIA Transformer Engine (optimized for Grace-Blackwell)
+nvidia-transformer-engine>=1.5.0
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Utilities
 # ───────────────────────────────────────────────────────────────────────────────
-pyyaml==6.0.1
-python-dotenv==1.0.0
-requests==2.31.0
-jsonlines==4.0.0
+pyyaml>=6.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+jsonlines>=4.0.0
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Jupyter (for notebook support if needed)
 # ───────────────────────────────────────────────────────────────────────────────
-ipykernel==6.28.0
-jupyter==1.0.0
+ipykernel>=6.28.0
+jupyter>=1.0.0
