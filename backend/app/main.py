@@ -18,23 +18,37 @@ from app.services.websocket_manager import manager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     # Startup: Initialize database tables
-    from app.database import init_db
-    init_db()
-    
-    # Start WebSocket pub/sub listener (ignore Redis errors for local dev)
     try:
-        pubsub_task = asyncio.create_task(manager.start_pubsub_listener())
+        from app.database import init_db
+        init_db()
     except Exception as e:
-        print(f"⚠️  Redis not available: {e}")
-        pubsub_task = None
+        print(f"❌ Database connection failed: {e}")
+        # We don't exit here to allow the app to start even if DB is down (e.g. for maintenance page)
+    
+    # Start WebSocket pub/sub listener
+    pubsub_task = None
+    try:
+        # Check if Redis is reachable before starting listener
+        await manager.connect_redis()
+        pubsub_task = asyncio.create_task(manager.start_pubsub_listener())
+        print("✅ WebSocket manager started")
+    except Exception as e:
+        print(f"⚠️  Redis not available (WebSocket disabled): {e}")
     
     yield
     
     # Shutdown: Stop pub/sub listener and disconnect Redis
-    if pubsub_task:
-        await manager.stop_pubsub_listener()
+    try:
+        if pubsub_task:
+            await manager.stop_pubsub_listener()
+            pubsub_task.cancel()
+            try:
+                await pubsub_task
+            except asyncio.CancelledError:
+                pass
         await manager.disconnect_redis()
-        pubsub_task.cancel()
+    except Exception as e:
+        print(f"⚠️  Error during shutdown: {e}")
 
 
 # Initialize FastAPI app

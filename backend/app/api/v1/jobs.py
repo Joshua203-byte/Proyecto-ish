@@ -2,7 +2,8 @@
 Jobs API endpoints.
 """
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from pydantic import Json
 from sqlalchemy.orm import Session
 from celery import Celery
 
@@ -27,9 +28,9 @@ celery_app = Celery(
 
 @router.post("/", response_model=JobRead, status_code=status.HTTP_201_CREATED)
 async def create_job(
-    job_data: JobCreate,
-    script_file: UploadFile = File(...),
-    dataset_file: UploadFile = File(None),
+    job_data: Json[JobCreate] = Form(...),
+    script: UploadFile = File(...),
+    dataset: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -61,12 +62,12 @@ async def create_job(
     storage = StorageService()
     
     # Save script
-    script_content = await script_file.read()
+    script_content = await script.read()
     await storage.save_script(job.id, job_data.script_name, script_content)
     
     # Save dataset if provided
-    if dataset_file:
-        await storage.save_dataset(job.id, dataset_file.file, dataset_file.filename)
+    if dataset:
+        await storage.save_dataset(job.id, dataset.file, dataset.filename)
         job.dataset_path = f"jobs/{job.id}/input/data"
         db.commit()
     

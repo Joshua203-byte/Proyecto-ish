@@ -1,43 +1,55 @@
-# Environment
-.env
-.env.local
-*.env
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
-.venv/
-ENV/
-*.egg-info/
-dist/
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
 .eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# Virtual Env
+venv/
+env/
+ENV/
+.env
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# Database
+*.db
+*.sqlite3
+*.sqlite
+backend/homegpu_dev.db
 
-# Docker
+# Logs
 *.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Project Specific
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/storage_data/*
+!backend/storage_data/.gitkeep
+worker/storage_data/*
+results/
 
 # OS
 .DS_Store
 Thumbs.db
-
-# Alembic
-alembic/versions/*.pyc
-
-# Uploaded files (handled via NFS, not git)
-uploads/

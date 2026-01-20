@@ -486,6 +486,15 @@ class APIClient {
         return this.request(`/jobs/${jobId}/cancel`, { method: 'POST' });
     }
 
+    // Admin endpoints
+    async getAdminStats() {
+        return this.request('/admin/stats');
+    }
+
+    async getAdminUsers() {
+        return this.request('/admin/users');
+    }
+
     isAuthenticated() {
         return !!this.token;
     }

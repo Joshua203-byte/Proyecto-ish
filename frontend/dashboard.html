@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/terminal.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="dashboard-page">
@@ -71,6 +72,16 @@
                     <circle cx="18" cy="15" r="1" />
                 </svg>
                 <span>Wallet</span>
+            </a>
+            <!-- Admin Link (Hidden by default) -->
+            <a href="#" class="nav-item" data-section="admin" id="adminSidebarLink"
+                style="display: none; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
+                    <path d="M12 12v6"></path>
+                    <path d="M12 6h.01"></path>
+                </svg>
+                <span>Admin Panel</span>
             </a>
         </nav>
 
@@ -366,6 +377,90 @@
                 </div>
             </section>
 
+            <!-- New Job Section -->
+            <section class="content-section" id="section-new-job">
+                <div class="content-header">
+                    <h1>New Training Job</h1>
+                    <p class="section-subtitle">Configure your training environment and upload your script.</p>
+                </div>
+
+                <div class="glass" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+                    <form id="newJobForm">
+                        <!-- Script Upload -->
+                        <div class="file-upload-container">
+                            <label class="form-label">Training Script (.py, .ipynb)</label>
+                            <div class="drop-zone" id="scriptDropZone">
+                                <div class="drop-zone-content">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="17 8 12 3 7 8" />
+                                        <line x1="12" y1="3" x2="12" y2="15" />
+                                    </svg>
+                                    <span class="upload-text">Drag & drop your script or click to browse</span>
+                                    <span class="upload-subtext">Supported: Python (.py), Jupyter (.ipynb)</span>
+                                </div>
+                            </div>
+                            <input type="file" id="scriptInput" accept=".py,.ipynb" style="display: none;">
+                            <div class="file-display" id="scriptDisplay">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                </svg>
+                                <span class="filename">filename.py</span>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Job Name (Optional)</label>
+                                <input type="text" name="jobName" class="form-input"
+                                    placeholder="e.g. ResNet Training v1">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Docker Image</label>
+                                <select name="dockerImage" class="form-select">
+                                    <option value="pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime">PyTorch 2.2 + CUDA
+                                        12.1</option>
+                                    <option value="tensorflow/tensorflow:2.15.0-gpu">TensorFlow 2.15 + GPU</option>
+                                    <option value="nvidia/cuda:12.1.0-base-ubuntu22.04">CUDA 12.1 Base</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Timeout</label>
+                                <select name="timeout" class="form-select">
+                                    <option value="1800">30 minutes</option>
+                                    <option value="3600" selected>1 hour</option>
+                                    <option value="7200">2 hours</option>
+                                    <option value="14400">4 hours</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="cost-estimate glass" style="margin-top: 2rem;">
+                            <div class="cost-row">
+                                <span>Estimated Cost:</span>
+                                <span class="cost-value">$0.50 / hour</span>
+                            </div>
+                            <div class="cost-row">
+                                <span>Your Balance:</span>
+                                <span class="cost-balance" id="newJobBalance">Loading...</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg btn-block glow-effect"
+                            style="margin-top: 2rem;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20"
+                                height="20">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            <span>Launch Training Job</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
             <!-- Wallet Section -->
             <section class="content-section" id="section-wallet">
                 <div class="wallet-container">
@@ -408,6 +503,81 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Admin Section -->
+            <section class="content-section" id="section-admin">
+                <div class="content-header">
+                    <h1>Admin Dashboard</h1>
+                    <p class="section-subtitle">Platform overview and user management</p>
+                </div>
+
+                <!-- Admin Stats -->
+                <div class="stats-grid" style="margin-bottom: 2rem;">
+                    <div class="stat-card glass">
+                        <div class="stat-icon purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="adminTotalUsers">0</span>
+                            <span class="stat-label">Total Users</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value">$<span id="adminRevenue">0.00</span></span>
+                            <span class="stat-label">Total Revenue</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass">
+                        <div class="stat-icon cyan">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-value" id="adminActiveJobs">0</span>
+                            <span class="stat-label">Active Jobs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Table -->
+                <div class="card glass">
+                    <div class="card-header">
+                        <h2 class="card-title">Users</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Balance</th>
+                                        <th>Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUsersTable">
+                                    <!-- Users loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -424,46 +594,112 @@
                 </button>
             </div>
             <div class="modal-body">
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Selecciona un paquete de créditos:</p>
                 <div class="credit-options">
                     <label class="credit-option">
-                        <input type="radio" name="credit_amount" value="10" checked>
+                        <input type="radio" name="credit_pack" value="pack_pilot" checked>
                         <div class="credit-option-content glass">
-                            <span class="credit-amount">$10</span>
+                            <span class="credit-amount">$5 USD</span>
                             <span class="credit-label">10 GPU hours</span>
                         </div>
                     </label>
-                    <label class="credit-option">
-                        <input type="radio" name="credit_amount" value="25">
-                        <div class="credit-option-content glass">
-                            <span class="credit-amount">$25</span>
-                            <span class="credit-label">25 GPU hours</span>
-                        </div>
-                    </label>
                     <label class="credit-option popular">
-                        <input type="radio" name="credit_amount" value="50">
+                        <input type="radio" name="credit_pack" value="pack_researcher">
                         <div class="credit-option-content glass">
                             <span class="popular-badge">Best Value</span>
-                            <span class="credit-amount">$50</span>
-                            <span class="credit-label">55 GPU hours</span>
+                            <span class="credit-amount">$20 USD</span>
+                            <span class="credit-label">45 GPU hours (+5 bonus)</span>
                         </div>
                     </label>
                     <label class="credit-option">
-                        <input type="radio" name="credit_amount" value="100">
+                        <input type="radio" name="credit_pack" value="pack_lab">
                         <div class="credit-option-content glass">
-                            <span class="credit-amount">$100</span>
-                            <span class="credit-label">115 GPU hours</span>
+                            <span class="credit-amount">$50 USD</span>
+                            <span class="credit-label">120 GPU hours (+20 bonus)</span>
                         </div>
                     </label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('topUpModal')">Cancel</button>
-                <button class="btn btn-primary glow-effect" id="confirmTopUp">Add Credits</button>
+                <button class="btn btn-secondary" onclick="closeModal('topUpModal')">Cancelar</button>
+                <button class="btn btn-primary glow-effect" id="confirmTopUp">Pagar con Wompi</button>
             </div>
         </div>
     </div>
 
+    <!-- Job Details Modal (Live Terminal) -->
+    <div class="modal-overlay" id="jobDetailsModal">
+        <div class="modal" style="max-width: 900px; width: 90%;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="jobDetailsTitle">Job Status</h3>
+                <div class="modal-actions">
+                    <span class="status-badge running" id="jobDetailsStatus">Running</span>
+                    <button class="modal-close" onclick="closeModal('jobDetailsModal')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="job-metrics-grid"
+                    style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <!-- Real-time Chart -->
+                    <div class="metric-card glassbox"
+                        style="padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3);">
+                        <canvas id="trainingChart" height="200"></canvas>
+                    </div>
+                    <!-- Quick Stats -->
+                    <div class="metric-stats glassbox"
+                        style="display: flex; flex-direction: column; justify-content: center; gap: 1rem; padding: 1rem;">
+                        <div class="stat-item">
+                            <label style="color: var(--text-muted); font-size: 0.8rem;">Current Epoch</label>
+                            <div id="liveEpoch" style="font-size: 1.5rem; font-weight: bold;">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <label style="color: var(--text-muted); font-size: 0.8rem;">Accuracy</label>
+                            <div id="liveAccuracy"
+                                style="font-size: 1.5rem; font-weight: bold; color: var(--accent-cyan);">-%</div>
+                        </div>
+                        <div class="stat-item">
+                            <label style="color: var(--text-muted); font-size: 0.8rem;">Loss</label>
+                            <div id="liveLoss" style="font-size: 1.5rem; font-weight: bold; color: var(--accent-pink);">
+                                -</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Terminal -->
+                <div class="terminal-window"
+                    style="background: #0f0f12; border-radius: 8px; overflow: hidden; border: 1px solid #333; font-family: 'JetBrains Mono', monospace;">
+                    <div class="terminal-header"
+                        style="background: #1a1a1f; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #333;">
+                        <div class="term-dot"
+                            style="width: 10px; height: 10px; border-radius: 50%; background: #ff5f56;"></div>
+                        <div class="term-dot"
+                            style="width: 10px; height: 10px; border-radius: 50%; background: #ffbd2e;"></div>
+                        <div class="term-dot"
+                            style="width: 10px; height: 10px; border-radius: 50%; background: #27c93f;"></div>
+                        <span
+                            style="margin-left: 0.5rem; color: #888; font-size: 0.8rem;">admin@gpu-worker:~/jobs</span>
+                    </div>
+                    <div class="terminal-body" id="liveTerminal"
+                        style="height: 300px; overflow-y: auto; padding: 1rem; color: #d4d4d4; font-size: 0.9rem;">
+                        <div class="log-line"><span style="color: #666;">Waiting for logs...</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('jobDetailsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
     <script src="js/app.js"></script>
+    <script src="js/files.js"></script>
+    <script src="js/payments.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/dashboard.js"></script>
 </body>

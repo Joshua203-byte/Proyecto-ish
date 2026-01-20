@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     WORKER_SECRET: str = "change-this-worker-secret-in-production"
     
     # Storage
-    NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
+    # Storage
+    NFS_MOUNT_PATH: str = "./storage_data"  # Use local folder for development
     MAX_UPLOAD_SIZE_MB: int = 500
     
     # ═══════════════════════════════════════════════════════════════════
@@ -50,8 +51,13 @@ class Settings(BaseSettings):
     DEFAULT_TIMEOUT_SECONDS: int = 3600
     MAX_TIMEOUT_SECONDS: int = 14400
     
+    # Wompi El Salvador Payment Integration
+    WOMPI_SV_APP_ID: str = ""  # App ID from panel.wompi.sv
+    WOMPI_SV_API_SECRET: str = ""  # API Secret from panel.wompi.sv
+    FRONTEND_URL: str = "http://localhost:5500"  # For payment redirects
+    
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
     
     class Config:
         env_file = ".env"
