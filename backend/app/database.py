@@ -6,12 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
 
-# Use SQLite for development if PostgreSQL is not available
+# Use DATABASE_URL from settings directly
 DATABASE_URL = settings.DATABASE_URL
-if DATABASE_URL.startswith("postgresql://") and os.environ.get("USE_SQLITE", "true").lower() == "true":
-    # Switch to SQLite for local development
-    DATABASE_URL = "sqlite:///./homegpu_dev.db"
-    print(f"⚠️  Using SQLite for development: {DATABASE_URL}")
+print(f"🔌 Database: {DATABASE_URL.split('@')[0].split('://')[0]}://***")
 
 # Create engine - adjust settings for SQLite vs PostgreSQL
 if DATABASE_URL.startswith("sqlite://"):
