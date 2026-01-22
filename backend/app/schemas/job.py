@@ -16,7 +16,6 @@ class ResourceConfig(BaseModel):
 class JobCreate(BaseModel):
     """Schema for job submission."""
     script_name: str = Field(default="train.py", max_length=255)
-    script_path: str | None = Field(default=None, description="Path to pre-uploaded script")
     docker_image: str = Field(
         default="nvidia/cuda:12.1-runtime-ubuntu22.04",
         max_length=255

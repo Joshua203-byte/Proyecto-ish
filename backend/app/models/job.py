@@ -46,15 +46,15 @@ class Job(Base):
     
     # Docker container tracking
     container_id = Column(String(64), nullable=True)
-    docker_image = Column(String(255), default="nvidia/cuda:12.1-runtime-ubuntu22.04")
+    docker_image = Column(String(255), default="python:3.11-slim")
     
     # Resource configuration (container limits) - use generic JSON for SQLite compat
     resource_config = Column(JSON, default=lambda: {
-        "memory_limit": "8g",
-        "cpu_count": 4,
+        "memory_limit": "4g",
+        "cpu_count": 2,
         "gpu_memory_fraction": 1.0,
         "timeout_seconds": 3600,
-        "disk_quota_gb": 50
+        "disk_quota_gb": 10
     })
     
     # Timestamps

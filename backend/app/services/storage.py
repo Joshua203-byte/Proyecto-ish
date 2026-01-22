@@ -106,9 +106,31 @@ class StorageService:
         if not log_file.exists():
             return ""
         
-        with open(log_file, 'r') as f:
+        with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
             return f.read()
+    
     
     def get_file_path(self, job_id: UUID, relative_path: str) -> Path:
         """Get absolute path for a job file (for downloads)."""
         return self.nfs_path / "jobs" / str(job_id) / "output" / relative_path
+
+    def create_results_archive(self, job_id: UUID) -> Path:
+        """Create a zip archive of the job output directory."""
+        job_path = self.nfs_path / "jobs" / str(job_id)
+        output_dir = job_path / "output"
+        zip_path = job_path / "results.zip"
+        
+        # Determine if outputs exist
+        if not output_dir.exists() or not any(output_dir.iterdir()):
+             raise FileNotFoundError("No output files found to download.")
+
+        # Create zip file
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(output_dir):
+                for file in files:
+                    file_path = Path(root) / file
+                    # Relative path inside zip
+                    arcname = file_path.relative_to(output_dir)
+                    zipf.write(file_path, arcname)
+                    
+        return zip_path

@@ -10,8 +10,11 @@
 // ─────────────────────────────────────────────────────────────────────────────────
 
 const CONFIG = {
-    API_URL: 'http://localhost:8000/api/v1',
-    TYPEWRITER_SPEED: 80,
+    API_URL: '/api/v1',
+    get WS_URL() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${window.location.host}/api/v1/ws`;
+    },
     TYPEWRITER_PAUSE: 2000,
     COUNTER_DURATION: 2000,
 };
@@ -484,15 +487,6 @@ class APIClient {
 
     async cancelJob(jobId) {
         return this.request(`/jobs/${jobId}/cancel`, { method: 'POST' });
-    }
-
-    // Admin endpoints
-    async getAdminStats() {
-        return this.request('/admin/stats');
-    }
-
-    async getAdminUsers() {
-        return this.request('/admin/users');
     }
 
     isAuthenticated() {

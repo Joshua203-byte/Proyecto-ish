@@ -24,12 +24,12 @@ class ContainerConfig:
     - No separate GPU VRAM - it's all unified memory
     """
     job_id: str
-    image: str = "home-gpu-cloud:standard-v2"
-    memory_limit: str = "120g"  # DGX Spark: Allow up to 120GB of unified memory
-    cpu_count: int = 12  # Grace CPU has many ARM cores
-    gpu_count: int = -1  # -1 = all GPUs (Blackwell integrated GPU)
+    image: str = "ubuntu:22.04"
+    memory_limit: str = "8g"  # Local dev default
+    cpu_count: int = 4  # Local dev default
+    gpu_count: int = 0  # 0 for no GPU (CPU only), -1 for all GPUs
     timeout_seconds: int = 3600
-    network_disabled: bool = True  # SECURITY: No network access
+    network_disabled: bool = False  # Changed for demo: Allow network access
 
 
 class DockerManager:
@@ -44,6 +44,7 @@ class DockerManager:
     """
     
     NFS_MOUNT_PATH = Path(settings.NFS_MOUNT_PATH)
+    HOST_DATA_PATH = Path(settings.HOST_DATA_PATH)
     
     def __init__(self):
         self.client = docker.from_env()
@@ -62,16 +63,9 @@ class DockerManager:
     def verify_gpu_runtime(self) -> bool:
         """Verify that NVIDIA GPU runtime is available on DGX Spark."""
         try:
-            result = self.client.containers.run(
-                "nvcr.io/nvidia/cuda:12.4.0-base-ubuntu22.04",
-                "nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv",
-                device_requests=[
-                    docker.types.DeviceRequest(count=-1, capabilities=[['gpu']])
-                ],
-                remove=True,
-                platform="linux/arm64",
-                timeout=30
-            )
+            # Skip real GPU verification on non-ARM machine for local testing
+            logger.info("ℹ️ Skipping NVIDIA GPU verification (No-GPU Mode)")
+            return True
             logger.info("✓ NVIDIA GPU runtime verified (DGX Spark / Blackwell)")
             logger.info(f"GPU Info: {result.decode('utf-8').strip()}")
             return True
@@ -97,6 +91,11 @@ class DockerManager:
         input_path = job_path / "input"
         output_path = job_path / "output"
         
+        # Prepare host paths for volume mounting (Docker-in-Docker)
+        host_job_path = self.HOST_DATA_PATH / "jobs" / config.job_id
+        host_input_path = host_job_path / "input"
+        host_output_path = host_job_path / "output"
+        
         # Ensure output directory exists
         output_path.mkdir(parents=True, exist_ok=True)
         
@@ -107,17 +106,17 @@ class DockerManager:
         
         container = self.client.containers.run(
             image=config.image,
-            command=f"python /workspace/input/{script_name}",
+            command=f"python3 /workspace/input/{script_name}",
             
             # ═══════════════════════════════════════════
             # VOLUME MOUNTS (NFS → Container)
             # ═══════════════════════════════════════════
             volumes={
-                str(input_path): {
+                str(host_input_path): {
                     "bind": "/workspace/input",
                     "mode": "ro"  # READ-ONLY: User cannot modify input
                 },
-                str(output_path): {
+                str(host_output_path): {
                     "bind": "/workspace/output",
                     "mode": "rw"  # READ-WRITE: Can write results
                 }
@@ -132,7 +131,7 @@ class DockerManager:
                     count=config.gpu_count,
                     capabilities=[['gpu']]
                 )
-            ],
+            ] if config.gpu_count > 0 else None,
             
             # ═══════════════════════════════════════════
             # RESOURCE LIMITS (SECURITY)
@@ -146,6 +145,7 @@ class DockerManager:
             # NETWORK ISOLATION (SECURITY)
             # ═══════════════════════════════════════════
             network_disabled=config.network_disabled,
+            dns=["8.8.8.8", "8.8.4.4"], # Google DNS fallback
             
             # ═══════════════════════════════════════════
             # ADDITIONAL SECURITY

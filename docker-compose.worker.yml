@@ -12,21 +12,22 @@ services:
     # IMPORTANT: DGX Spark runs ARM64 architecture
     platform: linux/arm64
     environment:
-      - REDIS_URL=${REDIS_URL:-redis://controller.local:6379/0}
-      - BACKEND_URL=${BACKEND_URL:-http://controller.local:8000}
-      - WORKER_SECRET=${WORKER_SECRET}
+      - REDIS_URL=${REDIS_URL:-redis://host.docker.internal:6379/0}
+      - BACKEND_URL=${BACKEND_URL:-http://host.docker.internal:8000}
+      - WORKER_SECRET=dev-worker-secret-123
       - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
+      - HOST_DATA_PATH=C:/Users/HOME/OneDrive/Desktop/Machine learning de ISH/home-gpu-cloud/data
     volumes:
       - ./worker:/app
-      - /mnt/home-gpu-cloud:/mnt/home-gpu-cloud
+      - ./data:/mnt/home-gpu-cloud
       - /var/run/docker.sock:/var/run/docker.sock # DinD access
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
+    #    deploy:
+    #      resources:
+    #        reservations:
+    #          devices:
+    #            - driver: nvidia
+    #              count: all
+    #              capabilities: [ gpu ]
     # DGX Spark has 128GB unified memory - no artificial limits
     # Memory is shared between CPU and Blackwell GPU
     privileged: true # Required for Docker-in-Docker

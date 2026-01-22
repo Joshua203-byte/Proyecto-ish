@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.job import Job, JobStatus
 from app.models.user import User
 from app.config import settings
+from app.services.billing import BillingService
 
 
 class JobService:
@@ -25,7 +26,7 @@ class JobService:
         self,
         user_id: UUID,
         script_name: str = "train.py",
-        docker_image: str = "nvidia/cuda:12.1-runtime-ubuntu22.04",
+        docker_image: str = None,
         resource_config: dict = None
     ) -> Job:
         """
@@ -119,6 +120,11 @@ class JobService:
         elif status in (JobStatus.COMPLETED, JobStatus.FAILED, 
                         JobStatus.CANCELLED, JobStatus.KILLED_NO_CREDITS):
             job.completed_at = now
+            
+            # Settle final cost if runtime is known
+            if runtime_seconds is not None:
+                billing = BillingService(self.db)
+                billing.settle_final_cost(job.id, runtime_seconds)
         
         self.db.commit()
         self.db.refresh(job)

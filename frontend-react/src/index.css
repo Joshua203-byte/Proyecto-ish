@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+  @apply bg-background text-primary antialiased;
+}
+
+/* Custom utilities if needed */
+.glass {
+  @apply bg-surface/50 backdrop-blur-md border border-white/10;
+}

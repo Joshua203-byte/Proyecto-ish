@@ -50,12 +50,6 @@ async function loadUserProfile() {
         document.getElementById('userName').textContent = user.full_name || 'User';
         document.getElementById('userEmail').textContent = user.email;
         document.getElementById('userInitial').textContent = (user.full_name || user.email)[0].toUpperCase();
-
-        // Show admin link if superuser
-        if (user.is_superuser) {
-            const adminLink = document.getElementById('adminSidebarLink');
-            if (adminLink) adminLink.style.display = 'flex';
-        }
     } catch (error) {
         console.error('Failed to load profile:', error);
         // If unauthorized, redirect to login
@@ -193,7 +187,7 @@ function renderRecentJobs(jobs) {
     }
 
     list.innerHTML = jobs.map(job => `
-        <div class="job-card glass" onclick="viewLogs('${job.id}')">
+        <div class="job-card glass" onclick="showJobDetails('${job.id}')">
             <div class="job-card-header">
                 <div>
                     <div class="job-name">${job.script_name || 'train.py'}</div>
@@ -303,7 +297,7 @@ function setupNavigation() {
     });
 }
 
-async function showSection(sectionId) {
+function showSection(sectionId) {
     // Update nav
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.toggle('active', item.dataset.section === sectionId);
@@ -313,73 +307,21 @@ async function showSection(sectionId) {
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
     });
-
-    const targetSection = document.getElementById(`section-${sectionId}`);
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
+    document.getElementById(`section-${sectionId}`).classList.add('active');
 
     // Update title
     const titles = {
         'overview': 'Overview',
         'jobs': 'Jobs',
         'new-job': 'New Job',
-        'wallet': 'Wallet',
-        'admin': 'Admin Dashboard'
+        'wallet': 'Wallet'
     };
     document.getElementById('pageTitle').textContent = titles[sectionId] || sectionId;
 
     // Load section-specific data
     if (sectionId === 'wallet') {
         loadTransactions();
-    } else if (sectionId === 'admin') {
-        loadAdminData();
     }
-}
-
-async function loadAdminData() {
-    try {
-        const [stats, users] = await Promise.all([
-            window.api.getAdminStats(),
-            window.api.getAdminUsers()
-        ]);
-
-        // Update Stats
-        document.getElementById('adminTotalUsers').textContent = stats.total_users;
-        document.getElementById('adminRevenue').textContent = formatCurrency(stats.total_revenue).replace('$', '');
-        document.getElementById('adminActiveJobs').textContent = stats.active_jobs;
-
-        // Render Users Table
-        const tableBody = document.getElementById('adminUsersTable');
-        tableBody.innerHTML = users.map(u => `
-            <tr>
-                <td>
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <span class="user-avatar-sm">${(u.full_name || u.email)[0].toUpperCase()}</span>
-                        <div>
-                            <div style="font-weight:500;">${u.full_name}</div>
-                            <div style="font-size:0.8rem; color:var(--text-muted);">${u.id.slice(0, 8)}...</div>
-                        </div>
-                    </div>
-                </td>
-                <td>${u.email}</td>
-                <td><span class="badge ${u.is_superuser ? 'badge-primary' : 'badge-secondary'}">${u.is_superuser ? 'Admin' : 'User'}</span></td>
-                <td>$${u.balance.toFixed(2)}</td>
-                <td>${new Date(u.created_at).toLocaleDateString()}</td>
-            </tr>
-        `).join('');
-
-    } catch (error) {
-        console.error('Failed to load admin data:', error);
-        Toast.error('Failed to load admin data');
-    }
-}
-
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(amount);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────
@@ -416,54 +358,80 @@ function setupUserMenu() {
 // FILE UPLOADS
 // ─────────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────────
-// FILE UPLOADS
-// ─────────────────────────────────────────────────────────────────────────────────
-
 function setupFileUploads() {
-    // Check if window.files exists (loaded from files.js)
-    if (window.files && window.files.initDropZone) {
-        window.files.initDropZone('scriptDropZone', 'scriptInput', 'scriptDisplay');
-    }
-
-    // Legacy setup if needed for other inputs
+    setupFileUpload('scriptUpload', 'scriptPreview');
+    setupFileUpload('datasetUpload', 'datasetPreview');
 }
 
-// Helper to show file info (called from files.js via event or UI observation)
-function updateFileDisplay(input, display) {
-    if (input.files.length > 0) {
-        const file = input.files[0];
-        display.querySelector('.filename').textContent = file.name;
-        display.style.display = 'flex';
-        display.classList.add('has-file');
+function setupFileUpload(uploadId, previewId) {
+    const upload = document.getElementById(uploadId);
+    const preview = document.getElementById(previewId);
+    const input = upload.querySelector('input');
 
-        // Hide dropzone content or zone itself? 
-        // Let's hide the dropzone visual to show clean state
-        const dropZone = document.getElementById('scriptDropZone');
-        if (dropZone) dropZone.style.display = 'none';
+    // Drag and drop
+    upload.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        upload.classList.add('drag-over');
+    });
 
-        // Add remove handler
-        display.onclick = () => {
-            input.value = '';
-            display.style.display = 'none';
-            display.classList.remove('has-file');
-            if (dropZone) dropZone.style.display = 'block';
-        };
-    }
-}
+    upload.addEventListener('dragleave', () => {
+        upload.classList.remove('drag-over');
+    });
 
-// Observer for file input changes (since files.js updates it)
-const scriptInput = document.getElementById('scriptInput');
-if (scriptInput) {
-    scriptInput.addEventListener('change', () => {
-        const display = document.getElementById('scriptDisplay');
-        updateFileDisplay(scriptInput, display);
+    upload.addEventListener('drop', (e) => {
+        e.preventDefault();
+        upload.classList.remove('drag-over');
+
+        if (e.dataTransfer.files.length) {
+            input.files = e.dataTransfer.files;
+            showFilePreview(input, preview, upload);
+        }
+    });
+
+    // File selection
+    input.addEventListener('change', () => {
+        showFilePreview(input, preview, upload);
     });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────────
-// JOB FORM
-// ─────────────────────────────────────────────────────────────────────────────────
+function showFilePreview(input, preview, upload) {
+    if (input.files.length === 0) {
+        preview.style.display = 'none';
+        upload.querySelector('.file-upload-icon').style.display = '';
+        upload.querySelector('.file-upload-text').style.display = '';
+        upload.querySelector('.file-upload-hint').style.display = '';
+        return;
+    }
+
+    const file = input.files[0];
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+    preview.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="file-preview-name">${file.name} (${sizeMB} MB)</span>
+        <span class="file-preview-remove" onclick="clearFile('${input.name}')">✕</span>
+    `;
+
+    preview.style.display = 'flex';
+    upload.querySelector('.file-upload-icon').style.display = 'none';
+    upload.querySelector('.file-upload-text').style.display = 'none';
+    upload.querySelector('.file-upload-hint').style.display = 'none';
+}
+
+function clearFile(inputName) {
+    const input = document.querySelector(`input[name="${inputName}"]`);
+    const upload = input.closest('.file-upload');
+    const preview = upload.querySelector('.file-preview');
+
+    input.value = '';
+    preview.style.display = 'none';
+    upload.querySelector('.file-upload-icon').style.display = '';
+    upload.querySelector('.file-upload-text').style.display = '';
+    upload.querySelector('.file-upload-hint').style.display = '';
+}
 
 // ─────────────────────────────────────────────────────────────────────────────────
 // JOB FORM
@@ -471,69 +439,23 @@ if (scriptInput) {
 
 function setupJobForm() {
     const form = document.getElementById('newJobForm');
-    if (!form) return;
-
-    // Load balance for the form
-    const updateFormBalance = async () => {
-        try {
-            const wallet = await window.api.getWallet();
-            const balanceEl = document.getElementById('newJobBalance');
-            if (balanceEl) {
-                balanceEl.textContent = `$${parseFloat(wallet.balance).toFixed(2)}`;
-            }
-        } catch (e) { console.error(e); }
-    };
-
-    // Update when showing section
-    const originalShowSection = window.showSection;
-    window.showSection = (sectionId) => {
-        originalShowSection(sectionId);
-        if (sectionId === 'new-job') {
-            updateFormBalance();
-        }
-    };
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const submitBtn = form.querySelector('[type="submit"]');
-        const scriptInput = document.getElementById('scriptInput');
-
-        if (!scriptInput.files.length) {
-            Toast.error('Please upload a training script');
-            return;
-        }
-
         const originalHTML = submitBtn.innerHTML;
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner spinner-sm"></span> Launching Job...';
+        submitBtn.innerHTML = '<span class="spinner spinner-sm"></span> Launching...';
 
         try {
-            const formData = new FormData();
-            const scriptFile = scriptInput.files[0];
+            const formData = new FormData(form);
 
-            // 1. Append File (using name="script" as requested)
-            formData.append('script', scriptFile);
-
-            // 2. Append Job Data JSON as Blob (User fix)
-            const jobPayload = {
-                script_name: scriptFile.name,
-                docker_image: form.elements['dockerImage'].value,
-                resource_config: {
-                    memory_limit: "8g", // Default
-                    cpu_count: 4,      // Default
-                    timeout_seconds: parseInt(form.elements['timeout'].value)
-                }
-            };
-
-            formData.append('job_data', new Blob([JSON.stringify(jobPayload)], { type: 'application/json' }));
-
-            // 3. Send Request
+            // Call API to create job
             const response = await fetch(`${window.api.baseURL}/jobs/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    // Do NOT set Content-Type
                 },
                 body: formData
             });
@@ -547,11 +469,8 @@ function setupJobForm() {
 
             Toast.success('Job launched successfully!');
             form.reset();
-
-            // Clear file UI
-            document.getElementById('scriptDisplay').classList.remove('has-file');
-            document.getElementById('scriptDisplay').style.display = 'none';
-            document.getElementById('scriptDropZone').style.display = 'block';
+            clearFile('script');
+            clearFile('dataset');
 
             // Refresh data and go to jobs
             await loadDashboardData();
@@ -559,7 +478,6 @@ function setupJobForm() {
             showSection('jobs');
 
         } catch (error) {
-            console.error(error);
             Toast.error(error.message);
         } finally {
             submitBtn.disabled = false;
@@ -584,164 +502,39 @@ async function cancelJob(jobId) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────────
-// LIVE JOB MONITORING (TERMINAL & CHARTS)
-// ─────────────────────────────────────────────────────────────────────────────────
-
-let currentLiveJob = null;
-let liveTerminal = null;
-let trainingChart = null;
-let chartData = {
-    labels: [],
-    datasets: [
-        {
-            label: 'Loss',
-            data: [],
-            borderColor: '#ff5f56',
-            backgroundColor: 'rgba(255, 95, 86, 0.1)',
-            tension: 0.4,
-            yAxisID: 'y'
-        },
-        {
-            label: 'Accuracy',
-            data: [],
-            borderColor: '#27c93f',
-            backgroundColor: 'rgba(39, 201, 63, 0.1)',
-            tension: 0.4,
-            yAxisID: 'y1'
-        }
-    ]
-};
-
 async function viewLogs(jobId) {
-    currentLiveJob = jobId;
-    const modal = document.getElementById('jobDetailsModal');
+    try {
+        const logs = await window.api.getJobLogs(jobId);
 
-    // 1. Reset & Show Modal
-    modal.classList.add('active');
-    document.getElementById('jobDetailsTitle').textContent = `Job: ${jobId.slice(0, 8)}`;
-    document.getElementById('liveEpoch').textContent = '-';
-    document.getElementById('liveAccuracy').textContent = '-%';
-    document.getElementById('liveLoss').textContent = '-';
+        // Simple modal to show logs
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 800px; max-height: 80vh;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Job Logs</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    <pre style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; color: var(--text-secondary);">${logs.logs || 'No logs available'}</pre>
+                </div>
+            </div>
+        `;
 
-    // 2. Initialize Terminal
-    if (!liveTerminal) {
-        liveTerminal = new LiveTerminal('#liveTerminal', {
-            theme: 'dark',
-            autoScroll: true
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
         });
-    }
-    liveTerminal.clear();
-    liveTerminal.connect(jobId);
 
-    // 3. Initialize Chart
-    initTrainingChart();
-
-    // 4. Hook into terminal logs to update chart
-    const originalAddLine = liveTerminal.addLine.bind(liveTerminal);
-    liveTerminal.addLine = (content, type, timestamp) => {
-        originalAddLine(content, type, timestamp);
-        if (type === 'log') {
-            parseMetrics(content);
-        }
-    };
-}
-
-function initTrainingChart() {
-    const ctx = document.getElementById('trainingChart').getContext('2d');
-
-    // Reset data
-    chartData.labels = [];
-    chartData.datasets[0].data = [];
-    chartData.datasets[1].data = [];
-
-    if (trainingChart) {
-        trainingChart.destroy();
-    }
-
-    trainingChart = new Chart(ctx, {
-        type: 'line',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                x: { display: false },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: { display: true, text: 'Loss', color: '#666' },
-                    grid: { color: 'rgba(255,255,255,0.05)' }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: { display: true, text: 'Accuracy', color: '#666' },
-                    grid: { drawOnChartArea: false },
-                    min: 0, max: 1
-                }
-            },
-            plugins: {
-                legend: { labels: { color: '#ccc' } }
-            }
-        }
-    });
-}
-
-function parseMetrics(logLine) {
-    // Expected format: "1/5 [====>.] - loss: 0.1234 - acc: 0.9876"
-
-    // Extract Epoch
-    if (logLine.includes('Epoch')) {
-        const epochMatch = logLine.match(/Epoch\s+(\d+)\/(\d+)/);
-        if (epochMatch) {
-            document.getElementById('liveEpoch').textContent = `${epochMatch[1]}/${epochMatch[2]}`;
-        }
-    }
-
-    // Extract Metrics
-    const lossMatch = logLine.match(/loss:\s*([0-9.]+)/);
-    const accMatch = logLine.match(/acc:\s*([0-9.]+)/);
-
-    if (lossMatch && accMatch) {
-        const loss = parseFloat(lossMatch[1]);
-        const acc = parseFloat(accMatch[1]);
-
-        // Update Stats
-        document.getElementById('liveLoss').textContent = loss.toFixed(4);
-        document.getElementById('liveAccuracy').textContent = `${(acc * 100).toFixed(1)}%`;
-
-        // Update Chart
-        if (trainingChart) {
-            const label = new Date().toLocaleTimeString();
-            chartData.labels.push(label);
-            chartData.datasets[0].data.push(loss);
-            chartData.datasets[1].data.push(acc);
-
-            // Limit to last 50 points
-            if (chartData.labels.length > 50) {
-                chartData.labels.shift();
-                chartData.datasets[0].data.shift();
-                chartData.datasets[1].data.shift();
-            }
-
-            trainingChart.update('none'); // 'none' for performance
-        }
+    } catch (error) {
+        Toast.error('Failed to load logs');
     }
 }
-
-// Clean up when closing modal
-const originalCloseModal = window.closeModal;
-window.closeModal = (modalId) => {
-    originalCloseModal(modalId);
-    if (modalId === 'jobDetailsModal' && liveTerminal) {
-        liveTerminal.disconnect();
-    }
-};
 
 function setupJobFilters() {
     const tabs = document.querySelectorAll('#jobTabs .tab');
@@ -771,27 +564,49 @@ function setupTopUpModal() {
     const topUpBtn = document.getElementById('topUpBtn');
     const confirmBtn = document.getElementById('confirmTopUp');
 
-    if (!topUpBtn || !confirmBtn) return;
-
     topUpBtn.addEventListener('click', () => {
         document.getElementById('topUpModal').classList.add('active');
     });
 
     confirmBtn.addEventListener('click', async () => {
-        const packId = document.querySelector('input[name="credit_pack"]:checked')?.value;
+        const packId = document.querySelector('input[name="credit_amount"]:checked').value;
 
-        if (!packId) {
-            Toast.error('Selecciona un paquete de créditos');
-            return;
-        }
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner spinner-sm"></span> Redirecting to Wompi...';
 
-        // Close modal and open Wompi checkout
-        closeModal('topUpModal');
+        try {
+            // Call backend to get Wompi Checkout URL
+            const response = await fetch(`${CONFIG.API_URL}/packs/${packId}/checkout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
 
-        if (window.payments && window.payments.openCheckout) {
-            await window.payments.openCheckout(packId);
-        } else {
-            Toast.error('Sistema de pagos no disponible');
+            if (!response.ok) {
+                const err = await response.json();
+                let msg = 'Failed to initiate payment';
+                if (err.detail) {
+                    msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+                }
+                throw new Error(msg);
+            }
+
+            const data = await response.json();
+
+            if (data.payment_url) {
+                // Redirect user to Wompi
+                window.location.href = data.payment_url;
+            } else {
+                throw new Error('No payment URL received');
+            }
+
+        } catch (error) {
+            console.error('Payment Error:', error);
+            Toast.error(error.message);
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'Add Credits';
         }
     });
 }

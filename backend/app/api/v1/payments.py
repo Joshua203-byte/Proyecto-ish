@@ -1,306 +1,216 @@
 """
-Wompi El Salvador Payment API endpoints.
-Uses OAuth 2.0 Client Credentials flow for authentication.
+Payments API endpoints.
 """
-import hashlib
-import uuid
-import httpx
-from decimal import Decimal
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import Optional
+from decimal import Decimal
+import logging
+import json
 
-from app.api.deps import get_db, get_current_user
-from app.models.user import User
+from app.api.deps import get_db
 from app.services.billing import BillingService
-from app.config import settings, CREDIT_PACKS
-
+from app.config import settings
+from app.models.user import User
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TOKEN CACHE (Simple in-memory cache)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_token_cache = {
-    "access_token": None,
-    "expires_at": None
-}
-
-
-async def get_wompi_token() -> str:
-    """
-    Get Wompi access token using OAuth 2.0 Client Credentials flow.
-    Caches the token until it expires.
-    """
-    global _token_cache
-    
-    # Check if we have a valid cached token
-    if _token_cache["access_token"] and _token_cache["expires_at"]:
-        if datetime.utcnow() < _token_cache["expires_at"]:
-            return _token_cache["access_token"]
-    
-    # Request new token
-    token_url = "https://id.wompi.sv/connect/token"
-    
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            token_url,
-            data={
-                "grant_type": "client_credentials",
-                "audience": "wompi_api",
-                "client_id": settings.WOMPI_SV_APP_ID,
-                "client_secret": settings.WOMPI_SV_API_SECRET
-            },
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        )
-        
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Failed to authenticate with Wompi: {response.text}"
-            )
-        
-        data = response.json()
-        
-        # Cache the token
-        _token_cache["access_token"] = data["access_token"]
-        # Expire 5 minutes before actual expiry for safety
-        expires_in = data.get("expires_in", 3600) - 300
-        _token_cache["expires_at"] = datetime.utcnow() + timedelta(seconds=expires_in)
-        
-        return _token_cache["access_token"]
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SCHEMAS
-# ═══════════════════════════════════════════════════════════════════════════════
-
-class PaymentLinkRequest(BaseModel):
-    """Request for creating a payment link."""
-    pack_id: str  # pack_pilot, pack_researcher, pack_lab
-
-
-class PaymentLinkResponse(BaseModel):
-    """Response with payment link URL."""
-    payment_url: str
-    reference: str
-    amount_usd: float
-    pack_name: str
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# CREATE PAYMENT LINK ENDPOINT
-# ═══════════════════════════════════════════════════════════════════════════════
-
-@router.post("/create-link", response_model=PaymentLinkResponse)
-async def create_payment_link(
-    request: PaymentLinkRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Create a Wompi payment link for purchasing credits.
-    
-    Returns a URL that the user can use to complete payment.
-    """
-    # Find pack
-    pack = next((p for p in CREDIT_PACKS if p["id"] == request.pack_id), None)
-    if not pack:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid pack_id: {request.pack_id}"
-        )
-    
-    # Generate unique reference
-    reference = f"GPU-{current_user.id}-{uuid.uuid4().hex[:8]}"
-    
-    # Get OAuth token
-    try:
-        token = await get_wompi_token()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Payment service unavailable: {str(e)}"
-        )
-    
-    # Create payment link via Wompi SV API
-    # Wompi El Salvador uses /EnlacePago endpoint
-    api_url = "https://api.wompi.sv/EnlacePago"
-    
-    # Amount in cents (USD)
-    amount_cents = int(pack["price_usd"] * 100)
-    
-    # Create a random ID for the link reference
-    random_id = str(uuid.uuid4())[:8]
-    
-    # Wompi SV payload format
-    payload = {
-        # Put user_id back in reference so we know who to credit!
-        "identificadorEnlaceComercio": f"GPU-{current_user.id}-{random_id}",
-        "monto": float(pack["price_usd"]),  # Ensure float
-        "nombreProducto": "Creditos GPU"  # Very simple name
-    }
-    
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            api_url,
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-        )
-        
-        if response.status_code not in [200, 201]:
-            print(f"Wompi error: {response.status_code} - {response.text}")
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Failed to create payment link: {response.text}"
-            )
-        
-        data = response.json()
-        print(f"Wompi response: {data}")
-        
-        # Get the payment URL from response
-        # Wompi SV returns links like: https://lk.wompi.sv/xxxxx
-        payment_url = data.get("urlEnlace") or data.get("url") or f"https://lk.wompi.sv/{data.get('idEnlace', '')}"
-        
-        return PaymentLinkResponse(
-            payment_url=payment_url,
-            reference=reference,
-            amount_usd=pack["price_usd"],
-            pack_name=pack["name"]
-        )
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# WEBHOOK ENDPOINT
-# ═══════════════════════════════════════════════════════════════════════════════
+logger = logging.getLogger(__name__)
 
 @router.post("/webhook")
-async def wompi_webhook(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+async def wompi_webhook(request: Request, db: Session = Depends(get_db)):
     """
-    Handle Wompi El Salvador webhook events.
-    
-    Wompi SV sends webhooks with this structure:
-    {
-        "ResultadoTransaccion": "ExitosaAprobada",
-        "Monto": 20,
-        "EnlacePago": {
-            "IdentificadorEnlaceComercio": "GPU-{user_id}-{random}"
-        }
-    }
+    Webhook for Wompi payment notifications.
+    Wompi sends: Monto, IdTransaccion, ResultadoTransaccion, EnlacePago, etc.
     """
     try:
-        event = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
-    
-    print(f"📨 Wompi webhook received: {event}")
-    
-    # Wompi El Salvador format (Pascal case)
-    resultado = event.get("ResultadoTransaccion", "")
-    monto = event.get("Monto", 0)  # Amount in USD (not cents)
-    cantidad = event.get("Cantidad", 1)
-    es_productiva = event.get("EsProductiva", False)
-    
-    # Get reference from EnlacePago
-    enlace_pago = event.get("EnlacePago", {})
-    reference = enlace_pago.get("IdentificadorEnlaceComercio", "")
-    
-    print(f"   Resultado: {resultado}")
-    print(f"   Monto: ${monto}, Cantidad: {cantidad}")
-    print(f"   Reference: {reference}")
-    print(f"   Productiva: {es_productiva}")
-    
-    # Check for successful transaction
-    success_results = ["ExitosaAprobada", "APPROVED", "SUCCESS", "Exitosa"]
-    
-    if resultado in success_results:
-        print(f"✅ Transaction approved!")
+        data = await request.json()
+        print(f"💰 WOMPI WEBHOOK RECEIVED: {json.dumps(data, indent=2, default=str)}")
         
-        # Extract user_id from reference (format: GPU-{user_id}-{random})
-        # Reference example: GPU-89fb0979-6e89-4286-aa99-d01565441c3c-eab2ef5b
-        user_id = None
-        if reference and reference.startswith("GPU-"):
-            # Remove prefix
-            ref_content = reference[4:] # Remove "GPU-"
-            # Check if it has the random suffix (last 9 chars: -xxxxxxxx)
-            if len(ref_content) > 36: # UUID is 36 chars
-                user_id = ref_content[:36]
-            else:
-                user_id = ref_content
+        # Wompi uses PascalCase field names
+        # ResultadoTransaccion can be: "ExitosaAprobada", "Rechazada", etc.
+        resultado = data.get('ResultadoTransaccion') or data.get('resultadoTransaccion') or data.get('estado') or ''
         
-        # Calculate amount in cents for matching
-        # Ensure monto is treated as float first (Wompi might send string)
-        try:
-            monto_float = float(monto)
-            amount_cents = int(monto_float * 100)
-        except (ValueError, TypeError):
-            print(f"❌ Error converting amount: {monto}")
-            amount_cents = 0
+        print(f"📊 Transaction result: {resultado}")
         
-        # Find pack by amount
-        credits_to_add = 0
-        pack_name = "Credits"
+        # Check for success
+        success_results = ["ExitosaAprobada", "Exitosa", "Aprobada", "aprobada", "success", "approved"]
+        if resultado not in success_results:
+            print(f"⏭️ Ignoring non-success result: {resultado}")
+            return {"status": "ignored", "reason": f"Result is {resultado}"}
+
+        # Get amount - Wompi uses "Monto" (capital M)
+        monto = data.get('Monto') or data.get('monto') or 0
+        amount_float = float(monto)
         
-        for pack in CREDIT_PACKS:
-            pack_amount = int(pack["price_usd"] * 100)
-            # Allow some variance in amount matching
-            if abs(pack_amount - amount_cents) < 100:
-                credits_to_add = pack["credits"]
-                pack_name = pack["name"]
-                break
+        # Get transaction ID
+        transaction_id = data.get('IdTransaccion') or data.get('idTransaccion') or 'unknown'
         
-        print(f"   User ID: {user_id}, Credits to add: {credits_to_add}")
+        # Get EnlacePago info if available
+        enlace_pago = data.get('EnlacePago') or {}
+        enlace_id = enlace_pago.get('IdentificadorEnlaceComercio') or data.get('identificadorEnlaceComercio') or 'unknown'
         
-        if user_id and credits_to_add > 0:
-            try:
-                billing = BillingService(db)
-                # First get the wallet for this user
-                wallet = billing.get_wallet(user_id)
-                if not wallet:
-                    wallet = billing.create_wallet(user_id)
-                
-                # Now add credits using wallet_id
-                billing.add_credits(
-                    wallet_id=wallet.id,
-                    amount=Decimal(str(credits_to_add)),
-                    description=f"Wompi payment - {pack_name}"
-                )
-                print(f"💰 Credited ${credits_to_add} hours to user {user_id}")
-                return {"status": "success", "credited": credits_to_add, "user_id": user_id}
-            except Exception as e:
-                print(f"❌ Error adding credits: {e}")
-                return {"status": "error", "message": str(e)}
-        else:
-            print(f"⚠️ Could not process: user_id={user_id}, credits={credits_to_add}")
-            return {"status": "incomplete", "user_id": user_id, "credits": credits_to_add}
-    else:
-        print(f"ℹ️ Non-approved result: {resultado}")
-        return {"status": "ignored", "result": resultado}
+        print(f"💵 Amount: ${amount_float}, TransactionID: {transaction_id}, EnlaceID: {enlace_id}")
+        
+        if amount_float <= 0:
+            print("⚠️ Amount is 0 or negative, skipping")
+            return {"status": "ignored", "reason": "Amount is 0"}
+        
+        # For this MVP/Demo, credit the first user
+        user = db.query(User).first()
+        if not user:
+            print("❌ No user found in database!")
+            return {"status": "error", "message": "No user found"}
+        
+        print(f"👤 Found user: {user.email}")
+
+        billing = BillingService(db)
+        
+        # Get or create wallet
+        wallet = billing.get_wallet(user.id)
+        if not wallet:
+            wallet = billing.create_wallet(user.id)
+            print(f"🆕 Created new wallet for user")
+        
+        print(f"💳 Wallet ID: {wallet.id}, Current balance: {wallet.balance}")
+        
+        # Check for duplicate transaction
+        from app.models.transaction import Transaction
+        existing = db.query(Transaction).filter(
+            Transaction.wallet_id == wallet.id,
+            Transaction.description.contains(transaction_id)
+        ).first()
+        
+        if existing:
+            print(f"⚠️ Transaction {transaction_id} already processed")
+            return {"status": "already_processed", "message": "Transaction already credited"}
+        
+        # Add credits
+        billing.add_credits(
+            wallet_id=wallet.id,
+            amount=Decimal(str(amount_float)),
+            description=f"Wompi Payment TX:{transaction_id}"
+        )
+        
+        # Refresh wallet to get new balance
+        db.refresh(wallet)
+        
+        print(f"✅ SUCCESS! Credited ${amount_float} to user {user.email}")
+        print(f"💰 New balance: {wallet.balance}")
+        
+        return {"status": "success", "credited": amount_float, "new_balance": str(wallet.balance)}
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Webhook Error: {e}")
+        print(traceback.format_exc())
+        # Return 200 to stop Wompi from retrying endlessly on internal code errors
+        return {"status": "error", "message": str(e)}
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# PACKS ENDPOINT (Public info)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-@router.get("/packs")
-def get_packs():
-    """Get available credit packs for purchase."""
+@router.get("/test-webhook")
+async def test_webhook_endpoint(db: Session = Depends(get_db)):
+    """
+    Test endpoint to simulate a successful payment webhook.
+    Use this to verify the webhook logic works.
+    """
+    # Simulate a $5 payment
+    user = db.query(User).first()
+    if not user:
+        return {"error": "No user found"}
+    
+    billing = BillingService(db)
+    wallet = billing.get_wallet(user.id)
+    if not wallet:
+        wallet = billing.create_wallet(user.id)
+    
+    old_balance = wallet.balance
+    
+    billing.add_credits(
+        wallet_id=wallet.id,
+        amount=Decimal("5.00"),
+        description="Test payment webhook"
+    )
+    
+    db.refresh(wallet)
+    
     return {
-        "packs": CREDIT_PACKS,
-        "currency": "USD",
-        "country": "El Salvador"
+        "status": "success",
+        "user": user.email,
+        "old_balance": str(old_balance),
+        "new_balance": str(wallet.balance),
+        "credited": 5.00
     }
+
+
+@router.post("/confirm")
+async def confirm_payment(request: Request, db: Session = Depends(get_db)):
+    """
+    Frontend calls this when user returns from Wompi with payment=success.
+    Uses the URL parameters (monto, idTransaccion, etc.) to credit the user.
+    This bypasses the webhook dependency entirely.
+    """
+    try:
+        data = await request.json()
+        print(f"💳 PAYMENT CONFIRM REQUEST: {json.dumps(data, indent=2, default=str)}")
+        
+        # Extract parameters from frontend (from URL query params)
+        monto = float(data.get('monto') or 0)
+        transaction_id = data.get('idTransaccion') or data.get('transactionId') or 'unknown'
+        enlace_id = data.get('idEnlace') or data.get('identificadorEnlaceComercio') or 'unknown'
+        
+        if monto <= 0:
+            return {"status": "error", "message": "Invalid amount"}
+        
+        # Get current user (for demo, use first user)
+        user = db.query(User).first()
+        if not user:
+            return {"status": "error", "message": "No user found"}
+        
+        billing = BillingService(db)
+        wallet = billing.get_wallet(user.id)
+        if not wallet:
+            wallet = billing.create_wallet(user.id)
+        
+        # Check if this transaction was already processed (prevent duplicates)
+        # Simple check: look for recent transaction with same description
+        from app.models.transaction import Transaction
+        existing = db.query(Transaction).filter(
+            Transaction.wallet_id == wallet.id,
+            Transaction.description.contains(transaction_id)
+        ).first()
+        
+        if existing:
+            print(f"⚠️ Transaction {transaction_id} already processed")
+            db.refresh(wallet)
+            return {
+                "status": "already_processed",
+                "message": "Payment already credited",
+                "balance": str(wallet.balance)
+            }
+        
+        old_balance = wallet.balance
+        
+        # Credit the amount
+        billing.add_credits(
+            wallet_id=wallet.id,
+            amount=Decimal(str(monto)),
+            description=f"Wompi Payment TX:{transaction_id}"
+        )
+        
+        db.refresh(wallet)
+        
+        print(f"✅ PAYMENT CONFIRMED! Credited ${monto} to {user.email}")
+        print(f"💰 Balance: {old_balance} → {wallet.balance}")
+        
+        return {
+            "status": "success",
+            "credited": monto,
+            "old_balance": str(old_balance),
+            "new_balance": str(wallet.balance)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ Confirm Error: {e}")
+        print(traceback.format_exc())
+        return {"status": "error", "message": str(e)}
+

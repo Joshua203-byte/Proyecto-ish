@@ -6,10 +6,6 @@ import time
 import platform
 import logging
 import httpx
-import random
-import math
-import redis
-import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -73,9 +69,9 @@ def execute_gpu_job(
     job_id: str,
     user_id: str,
     script_name: str = "train.py",
-    image: str = "home-gpu-cloud:standard-v2",  # ARM64 image
-    memory_limit: str = "120g",  # DGX Spark unified memory
-    cpu_count: int = 12,  # Grace CPU cores
+    image: str = "ubuntu:22.04",
+    memory_limit: str = "4g",
+    cpu_count: int = 2,
     timeout_seconds: int = 3600,
 ) -> dict:
     """
@@ -95,39 +91,12 @@ def execute_gpu_job(
     start_time = datetime.utcnow()
     
     try:
-        # Check if Docker is available, otherwise use simulation
-        use_simulation = False
-        try:
-            # Try to initialize DockerManager
-            dm = self.docker_manager
-        except Exception as e:
-            logger.warning(f"Docker unavailable ({e}). Switching to SIMULATION MODE.")
-            use_simulation = True
-
         # ═══════════════════════════════════════════
         # PHASE 1: Preparation
         # ═══════════════════════════════════════════
-        logger.info(f"Starting job {job_id} (Simulation: {use_simulation})")
+        logger.info(f"Starting job {job_id}")
         _update_job_status(job_id, "preparing")
         
-        if use_simulation:
-            # ═══════════════════════════════════════════
-            # SIMULATION MODE EXECUTION
-            # ═══════════════════════════════════════════
-            sim_container_id = f"sim-{job_id[:8]}"
-            _update_job_status(job_id, "running", container_id=sim_container_id)
-            
-            # Run the simulation loop
-            runtime_seconds = _run_simulation_loop(job_id, timeout_seconds)
-            
-            _update_job_status(job_id, "completed", runtime_seconds=runtime_seconds)
-            return {
-                "success": True,
-                "runtime_seconds": runtime_seconds,
-                "simulation": True
-            }
-
-        # REAL DOCKER EXECUTION
         config = ContainerConfig(
             job_id=job_id,
             image=image,
@@ -313,103 +282,3 @@ def _save_logs(job_id: str, logs: str) -> None:
         logger.info(f"Logs saved to {log_file}")
     except Exception as e:
         logger.error(f"Error saving logs: {e}")
-
-
-def _run_simulation_loop(job_id: str, timeout_seconds: int) -> int:
-    """
-    Simulate a realistic Deep Learning training process.
-    Generates logs that look like PyTorch/TensorFlow training.
-    """
-    start_time = datetime.utcnow()
-    total_epochs = 10
-    steps_per_epoch = 5
-    
-    # Connect to Redis
-    try:
-        r = redis.from_url(settings.REDIS_URL, decode_responses=True)
-    except Exception as e:
-        logger.warning(f"Redis unavailable for simulation: {e}")
-        r = None
-    
-    # Send fake logs function
-    def log(msg):
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
-        log_line = f"{timestamp} {msg}\n"
-        
-        # 1. Save to file (mock NFS)
-        try:
-            log_dir = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "logs"
-            log_dir.mkdir(parents=True, exist_ok=True)
-            with open(log_dir / "output.log", "a") as f:
-                f.write(log_line)
-        except Exception as e:
-            # Fallback to logger if file write fails
-            logger.error(f"Failed to write log to file: {e}")
-            pass
-            
-        # 2. Publish to Redis (WebSocket streaming)
-        if r:
-            try:
-                message = json.dumps({
-                    "type": "log",
-                    "content": log_line,
-                    "job_id": job_id,
-                    "timestamp": timestamp
-                })
-                r.publish(f"logs:{job_id}", message)
-            except Exception as e:
-                logger.warning(f"Failed to publish log to Redis: {e}")
-            
-    # Simulation delay
-    log("[INFO] Pulling docker image home-gpu-cloud:standard-v2...")
-    time.sleep(2)
-    log("[INFO] Image pulled successfully.")
-    log("[INFO] Starting container...")
-    time.sleep(1)
-    
-    log("="*60)
-    log("HOME-GPU-CLOUD TRAINING JOB STARTED")
-    log("="*60)
-    log("Device: NVIDIA Grace Blackwell GB10 (Simulated)")
-    log("CUDA Version: 12.4")
-    log("PyTorch Version: 2.1.0+cu121")
-    log("Loading dataset... (MNIST)")
-    time.sleep(2)
-    
-    model_loss = 2.5
-    model_acc = 0.1
-    
-    for epoch in range(1, total_epochs + 1):
-        log(f"\nEpoch {epoch}/{total_epochs}")
-        log("-" * 30)
-        
-        for step in range(1, steps_per_epoch + 1):
-            # Check for kill signal / billing
-            if (datetime.utcnow() - start_time).seconds > timeout_seconds:
-                log("[ERROR] Timeout reached!")
-                return (datetime.utcnow() - start_time).seconds
-                
-            # Simulate computation time
-            time.sleep(1.5)
-            
-            # Update metrics mathematically
-            decay = math.exp(-0.1 * ((epoch-1)*steps_per_epoch + step))
-            current_loss = model_loss * decay + random.uniform(-0.05, 0.05)
-            current_acc = 1.0 - (0.9 * decay) + random.uniform(-0.02, 0.02)
-            
-            # Clamp values
-            current_loss = max(0.01, current_loss)
-            current_acc = min(0.99, max(0.1, current_acc))
-            
-            # Progress bar style log
-            progress = int((step / steps_per_epoch) * 20)
-            bar = "=" * progress + ">" + "." * (20 - progress)
-            log(f"{step}/{steps_per_epoch} [{bar}] - loss: {current_loss:.4f} - acc: {current_acc:.4f}")
-            
-    log("\n[INFO] Training finished successfully.")
-    log(f"Final Accuracy: {current_acc:.4f}")
-    log("Saving model to /workspace/output/model.pt...")
-    time.sleep(2)
-    log("Upload complete.")
-    
-    return (datetime.utcnow() - start_time).seconds

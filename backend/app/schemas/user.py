@@ -26,7 +26,6 @@ class UserRead(UserBase):
     id: UUID
     is_active: bool
     is_verified: bool
-    is_superuser: bool = False
     created_at: datetime
     
     class Config:

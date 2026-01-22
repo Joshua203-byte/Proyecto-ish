@@ -176,6 +176,7 @@ class BillingService:
         except InsufficientCreditsError:
             return False, wallet.balance
     
+    
     def can_start_job(self, user_id: UUID) -> bool:
         """Check if user has minimum balance to start a job."""
         wallet = self.get_wallet(user_id)
@@ -184,3 +185,46 @@ class BillingService:
         
         minimum = Decimal(str(settings.MINIMUM_BALANCE_TO_START))
         return wallet.can_start_job(minimum)
+
+    def settle_final_cost(self, job_id: UUID, total_runtime_seconds: int) -> Decimal:
+        """
+        Calculate and charge the final cost difference for a completed job.
+        Should be called when job finishes to account for seconds not covered by heartbeats.
+        """
+        job = self.db.query(Job).filter(Job.id == job_id).first()
+        if not job:
+            return Decimal("0.00")
+
+        wallet = self.get_wallet(job.user_id)
+        if not wallet:
+            return Decimal("0.00")
+
+        # 1. Calculate total expected cost for the full runtime
+        total_expected_cost = calculate_cost(total_runtime_seconds)
+        
+        # 2. Calculate what's left to pay (Total - Already Paid)
+        # Ensure we don't refund if heartbeats slightly overpaid due to rounding (though unlikely with this logic)
+        amount_to_charge = max(Decimal("0.00"), total_expected_cost - job.total_cost)
+        
+        if amount_to_charge > 0:
+            try:
+                self.debit_for_job(
+                    wallet_id=wallet.id,
+                    job_id=job_id,
+                    amount=amount_to_charge,
+                    description=f"Final settlement ({total_runtime_seconds}s)"
+                )
+                
+                job.total_cost += amount_to_charge
+                job.runtime_seconds = total_runtime_seconds # Ensure exact runtime is saved
+                self.db.commit()
+                self.db.refresh(wallet)
+                
+            except InsufficientCreditsError:
+                # User ran out exactly at the end. 
+                # We record what we can or just leave it. 
+                # For now, we update the job cost but wallet might be negative or throw.
+                # Since debit_for_job checks balance, let's just log/pass if they are broke at the very end.
+                pass
+                
+        return amount_to_charge

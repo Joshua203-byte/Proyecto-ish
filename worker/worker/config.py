@@ -8,14 +8,15 @@ class WorkerSettings(BaseSettings):
     """Worker configuration loaded from environment."""
     
     # Celery / Redis
-    REDIS_URL: str = "redis://controller.local:6379/0"
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # Backend API
-    BACKEND_URL: str = "http://controller.local:8000"
+    BACKEND_URL: str = "http://localhost:8000"
     WORKER_SECRET: str = "change-this-worker-secret-in-production"
     
     # NFS Mount Point
-    NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
+    NFS_MOUNT_PATH: str = "C:/mnt/home-gpu-cloud"
+    HOST_DATA_PATH: str = "C:/mnt/home-gpu-cloud"  # Path on the Host OS (Windows)
     
     # Resource Defaults
     DEFAULT_MEMORY_LIMIT: str = "8g"
@@ -24,7 +25,7 @@ class WorkerSettings(BaseSettings):
     MAX_TIMEOUT_SECONDS: int = 14400
     
     # Docker
-    GPU_IMAGE: str = "nvidia/cuda:12.1-runtime-ubuntu22.04"
+    GPU_IMAGE: str = "python:3.11-slim"
     
     class Config:
         env_file = ".env"

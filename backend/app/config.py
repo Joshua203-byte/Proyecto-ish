@@ -26,9 +26,17 @@ class Settings(BaseSettings):
     WORKER_SECRET: str = "change-this-worker-secret-in-production"
     
     # Storage
-    # Storage
-    NFS_MOUNT_PATH: str = "./storage_data"  # Use local folder for development
+    NFS_MOUNT_PATH: str = "C:/Users/HOME/OneDrive/Desktop/Machine learning de ISH/home-gpu-cloud/data"
     MAX_UPLOAD_SIZE_MB: int = 500
+
+    # Payment (Wompi)
+    WOMPI_SV_APP_ID: str = ""
+    WOMPI_SV_API_SECRET: str = ""
+    WOMPI_PUB_KEY: str = "pub_test_Q5yDA9Nsa6vdsdf" # Default dev key (Fixed typo)
+    
+    # Frontend public URL
+    FRONTEND_URL: str = "http://localhost:8000"
+    BACKEND_URL: str = "http://localhost:8000"
     
     # ═══════════════════════════════════════════════════════════════════
     # BILLING (DGX Spark Pricing Strategy)
@@ -44,20 +52,15 @@ class Settings(BaseSettings):
     # Legacy compatibility
     CREDITS_PER_MINUTE: float = 0.50 / 60
     
-    # Resource Defaults (DGX Spark: 128GB unified memory)
-    # Recommend max 120GB to leave headroom for system
-    DEFAULT_MEMORY_LIMIT: str = "120g"
-    DEFAULT_CPU_COUNT: int = 12  # Grace CPU has many ARM cores
+    # Resource Defaults (Local Development Defaults)
+    DEFAULT_GPU_IMAGE: str = "python:3.11-slim"
+    DEFAULT_MEMORY_LIMIT: str = "4g"
+    DEFAULT_CPU_COUNT: int = 2
     DEFAULT_TIMEOUT_SECONDS: int = 3600
     MAX_TIMEOUT_SECONDS: int = 14400
     
-    # Wompi El Salvador Payment Integration
-    WOMPI_SV_APP_ID: str = ""  # App ID from panel.wompi.sv
-    WOMPI_SV_API_SECRET: str = ""  # API Secret from panel.wompi.sv
-    FRONTEND_URL: str = "http://localhost:5500"  # For payment redirects
-    
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     
     class Config:
         env_file = ".env"
@@ -73,38 +76,50 @@ CREDIT_PACKS = [
         "name": "Pilot",
         "price_usd": 5.00,
         "hours": 10,
-        "credits": 5.00,  # $5 = 10 hours at $0.50/hour
+        "credits": 5.00,
         "description": "Perfect for testing and small experiments",
         "popular": False,
+        "features": [
+            "Standard Priority",
+            "1 GPU Instance",
+            "16GB VRAM",
+            "Basic Support"
+        ]
     },
     {
         "id": "pack_researcher",
         "name": "Researcher",
         "price_usd": 20.00,
-        "hours": 45,  # 45 hours (includes 5 hour bonus)
-        "credits": 22.50,  # 45 hours * $0.50/hour
+        "hours": 45,
+        "credits": 22.50,
         "description": "Best value for regular training runs",
         "popular": True,
         "bonus_hours": 5,
+        "features": [
+            "High Priority Queue",
+            "Up to 2 Concurrent Jobs",
+            "32GB VRAM",
+            "5 Bonus Hours Included"
+        ]
     },
     {
         "id": "pack_lab",
         "name": "Lab",
         "price_usd": 50.00,
-        "hours": 120,  # 120 hours (includes 20 hour bonus)
-        "credits": 60.00,  # 120 hours * $0.50/hour
-        "description": "Everything in Researcher + Unlimited Queueing & Custom Env Setup",
+        "hours": 120,
+        "credits": 60.00,
+        "description": "Everything in Researcher + Priority Queue",
         "popular": False,
         "bonus_hours": 20,
         "features": [
-            "DGX Spark Access",
+            "Highest Priority",
+            "Multiple GPUs",
             "128GB Unified Memory",
+            "20 Bonus Hours Included",
             "Real-time Logs",
-            "Priority Queue",
             "API Access",
-            "Dedicated Support",
-            "Unlimited Queueing",
-            "Custom Env Setup"
+            "Priority Queue",
+            "Dedicated Support"
         ]
     },
 ]
