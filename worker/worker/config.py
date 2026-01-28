@@ -12,7 +12,7 @@ class WorkerSettings(BaseSettings):
     
     # Backend API
     BACKEND_URL: str = "http://localhost:8000"
-    WORKER_SECRET: str = "change-this-worker-secret-in-production"
+    WORKER_SECRET: str = "secret123"
     
     # NFS Mount Point
     NFS_MOUNT_PATH: str = "C:/mnt/home-gpu-cloud"

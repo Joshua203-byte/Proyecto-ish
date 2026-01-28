@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-this-to-a-secure-random-string-in-production"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    WORKER_SECRET: str = "change-this-worker-secret-in-production"
+    WORKER_SECRET: str = "secret123"
     
     # Storage
     NFS_MOUNT_PATH: str = "C:/Users/HOME/OneDrive/Desktop/Machine learning de ISH/home-gpu-cloud/data"
