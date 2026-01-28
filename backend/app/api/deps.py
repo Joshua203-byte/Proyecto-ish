@@ -13,7 +13,7 @@ from app.utils.security import decode_access_token, verify_worker_secret
 
 
 # HTTP Bearer scheme for JWT
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -29,31 +29,28 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
-    """Get the current authenticated user from JWT token."""
-    token = credentials.credentials
-    user_id = decode_access_token(token)
+    """
+    Get the current authenticated user.
+    MOCKED FOR GUEST MODE: Always returns a default guest user.
+    """
+    # Simply return a persistent guest user
+    # Try to find existing guest user or create one
+    guest_email = "guest@gpu-cloud.local"
+    user = db.query(User).filter(User.email == guest_email).first()
     
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
+    if not user:
+        from app.utils.security import get_password_hash
+        user = User(
+            email=guest_email,
+            hashed_password=get_password_hash("guest123"),
+            full_name="Guest User",
+            is_active=True,
+            is_superuser=False
         )
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is inactive",
-        )
-    
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
     return user
 
 
