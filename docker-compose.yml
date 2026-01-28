@@ -45,6 +45,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - WORKER_SECRET=${WORKER_SECRET:-secret123}
+      - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
     volumes:
       - ./backend:/app
       - /home/ish/home-gpu-cloud-data:/mnt/home-gpu-cloud

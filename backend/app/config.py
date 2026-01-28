@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     WORKER_SECRET: str = "secret123"
     
     # Storage
-    NFS_MOUNT_PATH: str = "C:/Users/HOME/OneDrive/Desktop/Machine learning de ISH/home-gpu-cloud/data"
+    NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
     MAX_UPLOAD_SIZE_MB: int = 500
 
     # Payment (Wompi)
