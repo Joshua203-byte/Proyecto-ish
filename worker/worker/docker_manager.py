@@ -96,8 +96,10 @@ class DockerManager:
         host_input_path = host_job_path / "input"
         host_output_path = host_job_path / "output"
         
-        # Ensure output directory exists
+        # Ensure output directory exists with proper permissions
         output_path.mkdir(parents=True, exist_ok=True)
+        import os
+        os.chmod(output_path, 0o777)
         
         logger.info(f"Launching container for job {config.job_id}")
         logger.info(f"  Image: {config.image}")
