@@ -44,8 +44,7 @@ def get_current_user(
             email=guest_email,
             hashed_password=hash_password("guest123"),
             full_name="Guest User",
-            is_active=True,
-            is_superuser=False
+            is_active=True
         )
         db.add(user)
         db.commit()
