@@ -133,13 +133,21 @@ async def create_job(
         # Create log dir and dummy log for eager mode
         log_dir = storage.nfs_path / "jobs" / str(job.id) / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
-        with open(log_dir / "output.log", "w") as f:
+        log_file = log_dir / "output.log"
+        with open(log_file, "w") as f:
             f.write(f"--- Job {job.id} initialized ---\n")
             f.write(f"User: {current_user.email}\n")
             f.write(f"Script: {script_file.filename}\n")
             f.write(f"Mode: Real Infrastructure (Production Mode)\n")
             f.write(f"Status: Job Queued in Redis (gpu_jobs)\n")
             f.write(f"Note: Worker is preparing the Docker container...\n")
+        
+        # Make log file writable by everyone (so worker can overwrite it)
+        try:
+            import os
+            os.chmod(log_file, 0o666)
+        except Exception as e:
+            print(f"⚠️ Failed to set log permissions: {e}")
         
         # Save dataset if provided
         if dataset_file:
