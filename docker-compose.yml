@@ -47,7 +47,7 @@ services:
       - WORKER_SECRET=${WORKER_SECRET:-secret123}
     volumes:
       - ./backend:/app
-      - ${NFS_MOUNT_PATH:-/mnt/home-gpu-cloud}:/mnt/home-gpu-cloud
+      - /home/ish/home-gpu-cloud-data:/mnt/home-gpu-cloud
     ports:
       - "8000:8000"
     depends_on:

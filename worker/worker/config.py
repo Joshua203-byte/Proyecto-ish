@@ -15,8 +15,8 @@ class WorkerSettings(BaseSettings):
     WORKER_SECRET: str = "secret123"
     
     # NFS Mount Point
-    NFS_MOUNT_PATH: str = "C:/mnt/home-gpu-cloud"
-    HOST_DATA_PATH: str = "C:/mnt/home-gpu-cloud"  # Path on the Host OS (Windows)
+    NFS_MOUNT_PATH: str = "/home/ish/home-gpu-cloud-data"
+    HOST_DATA_PATH: str = "/home/ish/home-gpu-cloud-data"  # Path on the Host OS (Windows)
     
     # Resource Defaults
     DEFAULT_MEMORY_LIMIT: str = "8g"
