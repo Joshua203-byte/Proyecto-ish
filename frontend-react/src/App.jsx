@@ -32,18 +32,20 @@ function App() {
       />
       <Router>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route
             path="/dashboard/*"
             element={
+              // ProtectedRoute is effectively a passthrough now, or we can remove it.
+              // Keeping it for now as it wraps the dashboard layout logic if any.
+              // Since AuthContext always provides a user, this will always grant access.
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             }
           />
-          {/* Redirect root to dashboard (will go to login if not auth) */}
-          <Route path="/" element={<Landing />} />
+          {/* Redirect root directly to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

@@ -80,17 +80,10 @@ export default function Sidebar() {
                         <p className="text-sm font-medium text-white truncate">{user?.full_name || 'User'}</p>
                         <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
                     </div>
-                    <button
-                        onClick={logout}
-                        className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-zinc-800 rounded transition-colors"
-                        title="Logout"
-                    >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                    </button>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{user?.full_name || 'User'}</p>
+                        <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
+                    </div>
                 </div>
             </div>
         </aside>

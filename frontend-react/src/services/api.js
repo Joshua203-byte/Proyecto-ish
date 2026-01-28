@@ -57,11 +57,8 @@ api.interceptors.response.use(
 
         // Handle 401s
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem('auth_token');
-            // ONLY redirect if we aren't already trying to login
-            if (!isLoginAttempt && window.location.pathname !== '/login') {
-                window.location.href = '/login';
-            }
+            console.warn("API returned 401. Since we are in Guest Mode, this might mean token expired but we continue as guest.");
+            // We do NOT redirect to login anymore
         }
         return Promise.reject(error);
     }

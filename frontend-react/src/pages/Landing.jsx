@@ -28,11 +28,11 @@ export default function Landing() {
                     </Link>
 
                     <div className="flex gap-4">
-                        <Link to="/login" className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-                            Log In
+                        <Link to="/dashboard" className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                            Dashboard
                         </Link>
-                        <Link to="/register" className="px-6 py-2 text-sm font-medium bg-white text-black hover:bg-zinc-200 rounded-full transition-all hover:scale-105">
-                            Sign Up
+                        <Link to="/dashboard/new-job" className="px-6 py-2 text-sm font-medium bg-white text-black hover:bg-zinc-200 rounded-full transition-all hover:scale-105">
+                            Start Training
                         </Link>
                     </div>
                 </div>
