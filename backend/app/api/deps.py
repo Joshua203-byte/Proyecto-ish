@@ -39,10 +39,10 @@ def get_current_user(
     user = db.query(User).filter(User.email == guest_email).first()
     
     if not user:
-        from app.utils.security import get_password_hash
+        from app.utils.security import hash_password
         user = User(
             email=guest_email,
-            hashed_password=get_password_hash("guest123"),
+            hashed_password=hash_password("guest123"),
             full_name="Guest User",
             is_active=True,
             is_superuser=False
