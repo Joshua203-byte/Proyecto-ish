@@ -44,7 +44,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
-      - WORKER_SECRET=${WORKER_SECRET:-dev-worker-secret}
+      - WORKER_SECRET=${WORKER_SECRET:-secret123}
     volumes:
       - ./backend:/app
       - ${NFS_MOUNT_PATH:-/mnt/home-gpu-cloud}:/mnt/home-gpu-cloud
