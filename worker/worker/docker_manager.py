@@ -121,6 +121,11 @@ class DockerManager:
                 str(host_output_path): {
                     "bind": "/workspace/output",
                     "mode": "rw"  # READ-WRITE: Can write results
+                },
+                # Mount HuggingFace cache for pre-downloaded models
+                "/home/ish/.cache/huggingface": {
+                    "bind": "/root/.cache/huggingface",
+                    "mode": "ro"  # READ-ONLY: Use cached models
                 }
             },
             working_dir="/workspace",
