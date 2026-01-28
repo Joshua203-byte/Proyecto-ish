@@ -49,6 +49,18 @@ def get_current_user(
         db.add(user)
         db.commit()
         db.refresh(user)
+
+    # Ensure guest has a wallet with credits
+    from app.models.wallet import Wallet
+    if not user.wallet:
+        # Create new wallet with 1000 credits
+        wallet = Wallet(user_id=user.id, balance=1000.0)
+        db.add(wallet)
+        db.commit()
+    elif user.wallet.balance < 1.0:
+        # Top up if empty
+        user.wallet.balance = 1000.0
+        db.commit()
         
     return user
 
