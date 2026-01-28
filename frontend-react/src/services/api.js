@@ -49,11 +49,13 @@ api.interceptors.response.use(
             data: error.response?.data
         });
 
-        // Show toast for all errors with HIGHER duration for visibility
-        toast.error(msg, {
-            description: `Status: ${error.response?.status || 'Network Error'}`,
-            duration: 10000, // 10 seconds to ensure user sees it
-        });
+        // Show toast for all errors EXCEPT 401 (Guest mode ignores auth errors)
+        if (!error.response || error.response.status !== 401) {
+            toast.error(msg, {
+                description: `Status: ${error.response?.status || 'Network Error'}`,
+                duration: 10000,
+            });
+        }
 
         // Handle 401s
         if (error.response && error.response.status === 401) {
