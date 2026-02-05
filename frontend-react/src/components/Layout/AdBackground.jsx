@@ -104,8 +104,17 @@ export default function AdBackground() {
     // Helper to resolve image source
     const getAdSrc = (ad) => {
         if (ad.is_local) return ad.image_url;
-        // Cache bust remote images to prevent mobile from holding onto 404s/old versions
-        return `${getAssetUrl(ad.image_url)}?v=fix_mobile_cache`;
+
+        let url = getAssetUrl(ad.image_url);
+        // Ensure absolute URL for mobile compatibility
+        if (url.startsWith('/')) {
+            url = `${window.location.origin}${url}`;
+        }
+
+        // Aggressive cache busting with timestamp to force reload on mobile
+        // Using a slower rotation (per minute) to avoid flickering but ensure freshness
+        const cacheBuster = Math.floor(Date.now() / 60000);
+        return `${url}?t=${cacheBuster}`;
     };
 
     return (
