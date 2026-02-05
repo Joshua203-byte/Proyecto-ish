@@ -5,7 +5,7 @@ import { getAssetUrl } from '../../utils/url';
 export default function AdBackground() {
     const [ads, setAds] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     // Fetch ads on mount
     useEffect(() => {
@@ -39,14 +39,11 @@ export default function AdBackground() {
                 if (Array.isArray(data) && data.length > 0) {
                     setAds(data);
                 } else {
-                    console.warn("No ads returned from API, using defaults.");
                     setAds(DEFAULT_ADS);
                 }
             } catch (error) {
                 console.error("Failed to fetch background ads, using defaults", error);
                 setAds(DEFAULT_ADS);
-            } finally {
-                setLoading(false);
             }
         };
         fetchAds();
@@ -57,23 +54,16 @@ export default function AdBackground() {
         if (ads.length <= 1) return;
 
         const currentAd = ads[currentIndex];
-        // Default to provided duration or 15s. If video, we might wait for onEnded instead.
-        const duration = (currentAd.duration_seconds || 15) * 1000;
+        const duration = (currentAd?.duration_seconds || 15) * 1000;
+        const isVideo = currentAd?.media_type === 'video' || currentAd?.image_url?.endsWith('.mp4');
 
         let interval;
-
-        // If it's an image, use simple interval. 
-        // If it's a video, we rely on onEnded, UNLESS it's a short looping video.
-        const isVideo = currentAd.media_type === 'video' || currentAd.image_url?.endsWith('.mp4');
-
         if (!isVideo) {
             interval = setInterval(() => {
+                setImageLoaded(false); // Reset for next image
                 setCurrentIndex((prev) => (prev + 1) % ads.length);
             }, duration);
         }
-
-        // If it's a video, we handle it in the render via onEnded event, 
-        // or a fallback timeout if we want to enforce duration.
 
         return () => {
             if (interval) clearInterval(interval);
@@ -81,108 +71,97 @@ export default function AdBackground() {
     }, [ads, currentIndex]);
 
     const handleVideoEnded = () => {
+        setImageLoaded(false);
         setCurrentIndex((prev) => (prev + 1) % ads.length);
     };
 
-    if (loading || ads.length === 0) {
-        // Fallback gradient if no ads or loading
-        return (
-            <div className="fixed inset-0 z-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700"></div>
-        );
-    }
-
     const currentAd = ads[currentIndex];
+    const isVideo = currentAd?.media_type === 'video' || currentAd?.image_url?.endsWith('.mp4');
+    const isSingleAd = ads.length === 1;
 
     return (
-        <div className="fixed inset-0 z-0 bg-black overflow-hidden">
-            {ads.map((ad, index) => {
-                const isCurrent = index === currentIndex;
-                const isVideo = ad.media_type === 'video' || ad.image_url?.endsWith('.mp4');
-                const isSingleAd = ads.length === 1;
+        <div className="fixed inset-0 z-0 overflow-hidden">
+            {/* BASE: Always visible animated gradient - the main design */}
+            <div
+                className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700"
+                style={{
+                    animation: 'gradientShift 15s ease infinite',
+                    backgroundSize: '400% 400%'
+                }}
+            />
 
-                return (
-                    <div
-                        key={ad.id}
-                        className={`absolute inset-0 transition-opacity duration-[1000ms] ease-in-out ${isCurrent ? 'opacity-100' : 'opacity-0'} pointer-events-none`}
-                    >
-                        {/* Background Content */}
-                        {isVideo ? (
-                            <VideoPlayer
-                                src={getAssetUrl(ad.image_url)}
-                                isActive={isCurrent}
-                                onEnded={handleVideoEnded}
-                                shouldLoop={ad.duration_seconds < 15 || isSingleAd}
-                            />
-                        ) : (
-                            <img
-                                src={getAssetUrl(ad.image_url)}
-                                alt={ad.title}
-                                className="w-full h-full object-cover opacity-90"
-                            />
-                        )}
+            {/* OVERLAY: Images/Videos only shown if they load successfully */}
+            {currentAd && (
+                <div
+                    className={`absolute inset-0 transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                >
+                    {isVideo ? (
+                        <VideoPlayer
+                            src={getAssetUrl(currentAd.image_url)}
+                            onEnded={handleVideoEnded}
+                            shouldLoop={currentAd.duration_seconds < 15 || isSingleAd}
+                            onLoadSuccess={() => setImageLoaded(true)}
+                            onLoadError={() => setImageLoaded(false)}
+                        />
+                    ) : (
+                        <img
+                            src={getAssetUrl(currentAd.image_url)}
+                            alt={currentAd.title}
+                            className="w-full h-full object-cover"
+                            onLoad={() => setImageLoaded(true)}
+                            onError={() => setImageLoaded(false)}
+                        />
+                    )}
 
-                        {/* Overlay Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    {/* Dark overlay for readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                </div>
+            )}
 
-                        {/* Ad Info / Clickable Area */}
-                        {ad.target_url && (
-                            <a
-                                href={ad.target_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute bottom-8 left-8 py-3 px-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/90 hover:bg-white/20 transition-colors flex items-center gap-3 cursor-pointer group z-50 pointer-events-auto"
-                            >
-                                <span className="font-serif italic">Promoted</span>
-                                <span className="w-px h-4 bg-white/20"></span>
-                                <span className="font-medium tracking-wide group-hover:underline">{ad.title}</span>
-                                <svg className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M5 12h14M12 5l7 7-7 7" />
-                                </svg>
-                            </a>
-                        )}
-                    </div>
-                );
-            })}
+            {/* Ad badge - only shown if ad loaded */}
+            {currentAd?.target_url && imageLoaded && (
+                <a
+                    href={currentAd.target_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-8 left-8 py-3 px-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/90 hover:bg-white/20 transition-colors flex items-center gap-3 cursor-pointer group z-50"
+                >
+                    <span className="font-serif italic">Promoted</span>
+                    <span className="w-px h-4 bg-white/20" />
+                    <span className="font-medium tracking-wide group-hover:underline">{currentAd.title}</span>
+                    <svg className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </a>
+            )}
         </div>
     );
 }
 
-function VideoPlayer({ src, isActive, onEnded, shouldLoop }) {
+function VideoPlayer({ src, onEnded, shouldLoop, onLoadSuccess, onLoadError }) {
     const videoRef = useRef(null);
-    const [videoError, setVideoError] = useState(false);
 
     useEffect(() => {
-        if (isActive && videoRef.current && !videoError) {
-            // Force play when active
+        if (videoRef.current) {
             videoRef.current.play().catch(e => {
                 console.log("Autoplay prevented:", e);
-                setVideoError(true); // Fallback to gradient
+                onLoadError();
             });
-        } else if (!isActive && videoRef.current) {
-            // Pause and reset when not active
-            videoRef.current.pause();
-            videoRef.current.currentTime = 0;
         }
-    }, [isActive, videoError]);
-
-    // Fallback gradient when video fails
-    if (videoError) {
-        return (
-            <div className="w-full h-full bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 animate-gradient-xy" />
-        );
-    }
+    }, [src]);
 
     return (
         <video
             ref={videoRef}
             src={src}
-            className="w-full h-full object-cover opacity-90"
+            className="w-full h-full object-cover"
             muted
             autoPlay
             playsInline
             onEnded={onEnded}
             loop={shouldLoop}
-            onError={() => setVideoError(true)}
+            onLoadedData={onLoadSuccess}
+            onError={onLoadError}
         />
     );
 }
