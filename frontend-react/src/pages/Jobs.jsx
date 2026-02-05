@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+import { toast } from 'sonner';
 
 export default function Jobs() {
     const [jobs, setJobs] = useState([]);
@@ -10,6 +11,9 @@ export default function Jobs() {
     const [logs, setLogs] = useState('');
     const [fetchingLogs, setFetchingLogs] = useState(false);
 
+    // Confirmation Modal State
+    const [confirmAction, setConfirmAction] = useState(null); // { type: 'cancel' | 'delete', job: jobObject }
+
     useEffect(() => {
         let isMounted = true;
         const fetchJobs = async () => {
@@ -17,7 +21,6 @@ export default function Jobs() {
                 const { data } = await api.get('/jobs/', { params: { _t: Date.now() } });
                 if (isMounted) {
                     setJobs(data);
-                    console.log(`📊 [JOBS] Fetched ${data.length} jobs`);
                 }
             } catch (error) {
                 console.error("Failed to fetch jobs", error);
@@ -26,15 +29,12 @@ export default function Jobs() {
             }
         };
         fetchJobs();
-
-        // Refresh jobs every 10 seconds
         const interval = setInterval(fetchJobs, 10000);
-
         return () => {
             isMounted = false;
             clearInterval(interval);
         };
-    }, []); // Only on mount
+    }, []);
 
     const viewLogs = async (job) => {
         setSelectedJob(job);
@@ -44,70 +44,88 @@ export default function Jobs() {
             const { data } = await api.get(`/jobs/${job.id}/logs/`);
             setLogs(data.logs || 'No logs available yet.');
         } catch (error) {
-            console.error("Failed to fetch logs", error);
             setLogs("Error loading logs from server.");
         } finally {
             setFetchingLogs(false);
         }
     };
 
-    const downloadResults = async (job) => {
+    // --- Action Handlers (Previously window.confirm) ---
+
+    // 1. Request Cancel
+    const requestCancel = (job, e) => {
+        if (e) e.stopPropagation();
+        setConfirmAction({ type: 'cancel', job });
+    };
+
+    // 2. Request Delete
+    const requestDelete = (job, e) => {
+        if (e) e.stopPropagation();
+        setConfirmAction({ type: 'delete', job });
+    };
+
+    // 3. Confirm Handler
+    const handleConfirm = async () => {
+        if (!confirmAction) return;
+        const { type, job } = confirmAction;
+
         try {
-            const response = await api.get(`/jobs/${job.id}/download`, {
-                responseType: 'blob',
-            });
+            if (type === 'cancel') {
+                await api.post(`/jobs/${job.id}/cancel/`);
+                toast.success('Job cancellation requested');
+            } else if (type === 'delete') {
+                await api.delete(`/jobs/${job.id}/`);
+                toast.success('Job deleted');
+            }
 
-            // Create blob link to download
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `results_${job.id}.zip`);
+            // Refresh list
+            const { data } = await api.get('/jobs/', { params: { _t: Date.now() } });
+            setJobs(data);
 
-            // Append to html link element page
-            document.body.appendChild(link);
-
-            // Start download
-            link.click();
-
-            // Clean up and remove the link
-            link.parentNode.removeChild(link);
+            // Update modal state if needed
+            if (selectedJob && selectedJob.id === job.id) {
+                if (type === 'delete') setSelectedJob(null);
+                if (type === 'cancel') setSelectedJob(prev => ({ ...prev, status: 'cancelled' }));
+            }
         } catch (error) {
-            console.error("Failed to download results", error);
-            alert("Error downloading results. Please try again.");
+            toast.error(`Failed to ${type} job`);
+        } finally {
+            setConfirmAction(null);
         }
+    };
+
+    const copyLogs = () => {
+        navigator.clipboard.writeText(logs);
+        toast.success('Logs copied to clipboard');
     };
 
     const filteredJobs = filter === 'all'
         ? jobs
         : jobs.filter(job => job.status === filter);
 
-    if (loading) return <div className="p-8 text-zinc-500">Loading jobs...</div>;
+    if (loading) return <div className="p-8 text-secondary font-serif text-xl animate-pulse">Loading jobs...</div>;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            <header className="flex justify-between items-center mb-8">
+        <div className="pt-48 space-y-12 animate-in fade-in duration-500 max-w-6xl mx-auto px-6 relative">
+            <header className="flex justify-between items-end border-b border-border pb-8">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-1">Jobs</h1>
-                    <p className="text-zinc-500">Manage and monitor your training tasks.</p>
+                    <h1 className="text-5xl font-serif font-medium text-primary mb-2">Jobs</h1>
+                    <p className="text-secondary text-lg">Manage your transfers.</p>
                 </div>
-                <Link to="/dashboard/new-job" className="btn btn-primary bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded-md font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    New Job
+                <Link to="/dashboard/new-job" className="bg-primary text-white hover:bg-primary/90 px-8 py-4 rounded-full font-medium text-lg transition-transform hover:-translate-y-1 shadow-lg">
+                    New Job +
                 </Link>
             </header>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-zinc-800 pb-1">
-                {['all', 'running', 'completed', 'failed', 'pending'].map(tab => (
+            <div className="flex gap-6 border-b border-border pb-1">
+                {['all', 'running', 'completed', 'failed'].map(tab => (
                     <button
                         key={tab}
                         onClick={() => setFilter(tab)}
-                        className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${filter === tab
-                            ? 'text-white border-b-2 border-accent bg-zinc-900/50'
-                            : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30'
+                        className={`pb-4 text-lg font-serif transition-colors ${filter === tab
+                            ? 'text-primary border-b-2 border-primary'
+                            : 'text-secondary hover:text-primary'
                             }`}
                     >
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -116,56 +134,89 @@ export default function Jobs() {
             </div>
 
             {/* Jobs List */}
-            <div className="grid gap-4">
+            <div className="space-y-4">
                 {filteredJobs.length === 0 ? (
-                    <div className="text-center py-12 text-zinc-500 bg-zinc-900/30 rounded-lg border border-zinc-800/50">
-                        No {filter !== 'all' && filter} jobs found.
+                    <div className="p-16 text-center bg-white rounded-3xl border border-border">
+                        <p className="text-secondary text-lg mb-6">No {filter !== 'all' && filter} jobs found.</p>
                     </div>
                 ) : (
                     filteredJobs.map(job => (
-                        <div key={job.id} className="p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-zinc-700 transition-all">
-                            <div className="flex items-center gap-4">
+                        <div key={job.id} onClick={() => viewLogs(job)} className="group cursor-pointer p-8 rounded-3xl bg-white border border-border hover:shadow-lg transition-all duration-300 flex items-center justify-between">
+                            <div className="flex items-center gap-6">
                                 <StatusIcon status={job.status} />
                                 <div>
-                                    <h3 className="text-lg font-bold text-white">
+                                    <h3 className="text-2xl font-serif font-medium text-primary group-hover:text-accent transition-colors">
                                         {job.name || (job.script_path ? job.script_path.split('/').pop() : 'Untitled Job')}
                                     </h3>
-                                    <div className="flex gap-4 text-xs text-zinc-500 font-mono mt-1">
-                                        <span>ID: {job.id.substring(0, 8)}</span>
+                                    <div className="flex gap-4 text-sm text-secondary font-mono mt-2">
+                                        <span>{job.id.substring(0, 8)}</span>
                                         <span>•</span>
-                                        <span>{job.created_at ? new Date(job.created_at).toLocaleString() : 'Just now'}</span>
+                                        <span>{new Date(job.created_at).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-8">
                                 <div className="text-right hidden md:block">
-                                    <p className="text-sm text-zinc-400">Duration</p>
-                                    <p className="text-white font-mono">{formatDuration(job.runtime_seconds)}</p>
+                                    <p className="text-sm font-medium text-secondary uppercase tracking-widest">Duration</p>
+                                    <JobDuration job={job} />
                                 </div>
-                                <div className="text-right hidden md:block">
-                                    <p className="text-sm text-zinc-400">Cost</p>
-                                    <p className="text-white font-mono">${Number(job.total_cost || 0).toFixed(2)}</p>
+
+                                {/* Main Action Button in List */}
+                                <div className="flex items-center gap-2">
+                                    {['running', 'pending'].includes(job.status) && (
+                                        <button
+                                            onClick={(e) => requestCancel(job, e)}
+                                            className="p-3 text-secondary hover:text-white hover:bg-error rounded-full transition-colors"
+                                            title="Cancel Job"
+                                        >
+                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                    {job.status === 'completed' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toast.promise(
+                                                    api.get(`/jobs/${job.id}/download`, { responseType: 'blob' })
+                                                        .then((response) => {
+                                                            const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.setAttribute('download', `job_${job.id}_results.zip`);
+                                                            document.body.appendChild(link);
+                                                            link.click();
+                                                            link.remove();
+                                                        }),
+                                                    {
+                                                        loading: 'Preparing download...',
+                                                        success: 'Download started',
+                                                        error: 'Failed to download results'
+                                                    }
+                                                );
+                                            }}
+                                            className="p-3 text-secondary hover:text-primary hover:bg-neutral-100 rounded-full transition-colors"
+                                            title="Download Results"
+                                        >
+                                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                    {['completed', 'failed', 'cancelled'].includes(job.status) && (
+                                        <button
+                                            onClick={(e) => requestDelete(job, e)}
+                                            className="p-3 text-secondary hover:text-error hover:bg-error/10 rounded-full transition-colors"
+                                            title="Delete Job"
+                                        >
+                                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    )}
                                 </div>
-                                <button
-                                    onClick={() => viewLogs(job)}
-                                    className="px-4 py-1.5 text-sm bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700 text-white transition-colors"
-                                >
-                                    Logs
-                                </button>
-                                {job.status === 'completed' && (
-                                    <button
-                                        onClick={() => downloadResults(job)}
-                                        className="px-4 py-1.5 text-sm bg-blue-600 border border-blue-500 rounded-lg hover:bg-blue-500 text-white transition-colors flex items-center gap-2"
-                                    >
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                            <polyline points="7 10 12 15 17 10" />
-                                            <line x1="12" y1="15" x2="12" y2="3" />
-                                        </svg>
-                                        Results
-                                    </button>
-                                )}
                             </div>
                         </div>
                     ))
@@ -174,47 +225,137 @@ export default function Jobs() {
 
             {/* Logs Modal */}
             {selectedJob && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-4xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-                        <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                <div className="fixed inset-0 z-40 flex items-center justify-end animate-in slide-in-from-right duration-500">
+                    <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={() => setSelectedJob(null)}></div>
+                    <div className="relative w-full max-w-2xl h-full bg-white shadow-2xl flex flex-col">
+                        <div className="p-8 border-b border-border flex justify-between items-center bg-background">
                             <div>
-                                <h2 className="text-lg font-bold text-white">Execution Logs</h2>
-                                <p className="text-xs text-zinc-500 font-mono">Job: {selectedJob.id}</p>
+                                <h2 className="text-3xl font-serif font-medium text-primary mb-1">Logs</h2>
+                                <p className="text-secondary font-mono text-sm uppercase tracking-wider">{selectedJob.status}</p>
                             </div>
-                            <button
-                                onClick={() => setSelectedJob(null)}
-                                className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors"
-                            >
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-auto p-4 bg-black font-mono text-sm">
-                            <pre className="text-emerald-500 whitespace-pre-wrap">
-                                {fetchingLogs ? (
-                                    <div className="flex items-center gap-2 text-zinc-500">
-                                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={copyLogs}
+                                    className="p-2 text-secondary hover:text-primary hover:bg-neutral-100 rounded-lg transition-colors"
+                                    title="Copy Logs"
+                                >
+                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                </button>
+
+                                {['completed', 'failed', 'cancelled'].includes(selectedJob.status) && (
+                                    <button
+                                        onClick={(e) => requestDelete(selectedJob, e)}
+                                        className="p-2 text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors"
+                                        title="Delete Job"
+                                    >
+                                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                        Fetching logs from system...
-                                    </div>
-                                ) : (
-                                    logs || '// No logs available for this job stage.'
+                                    </button>
                                 )}
-                            </pre>
+
+                                {selectedJob.status === 'completed' && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const token = localStorage.getItem('token');
+                                            // Direct download using window.location to trigger browser download
+                                            // We need to pass auth token? The API is protected. 
+                                            // Actually, we should fetch a blob or use a signed URL. 
+                                            // For simplicity with Bearer auth, we can use a fetch and create an object URL.
+
+                                            toast.promise(
+                                                api.get(`/jobs/${selectedJob.id}/download`, { responseType: 'blob' })
+                                                    .then((response) => {
+                                                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.setAttribute('download', `job_${selectedJob.id}_results.zip`);
+                                                        document.body.appendChild(link);
+                                                        link.click();
+                                                        link.remove();
+                                                    }),
+                                                {
+                                                    loading: 'Preparing download...',
+                                                    success: 'Download started',
+                                                    error: 'Failed to download results'
+                                                }
+                                            );
+                                        }}
+                                        className="p-2 text-secondary hover:text-primary hover:bg-neutral-100 rounded-lg transition-colors"
+                                        title="Download Results"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                    </button>
+                                )}
+
+                                <button onClick={() => setSelectedJob(null)} className="ml-4 text-secondary hover:text-primary">
+                                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end">
-                            <button
-                                onClick={() => viewLogs(selectedJob)}
-                                className="text-xs text-accent hover:text-blue-400 font-medium flex items-center gap-1 transition-colors"
-                            >
-                                <svg className={`w-3 h-3 ${fetchingLogs ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+
+                        <div className="flex-1 overflow-auto p-8 font-mono text-sm bg-white text-primary leading-relaxed whitespace-pre-wrap selection:bg-accent selection:text-white">
+                            {fetchingLogs ? 'Loading...' : (logs || 'No logs available.')}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Confirmation Modal */}
+            {confirmAction && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmAction(null)}></div>
+
+                    {/* Modal Card */}
+                    <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 border border-white/20 scale-100 transition-transform">
+                        <div className="flex flex-col items-center text-center">
+
+                            {/* Icon */}
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 
+                                ${confirmAction.type === 'delete' ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'}`}>
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    {confirmAction.type === 'delete'
+                                        ? <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        : <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    }
                                 </svg>
-                                Refresh Logs
-                            </button>
+                            </div>
+
+                            {/* Text */}
+                            <h3 className="text-2xl font-serif font-bold text-primary mb-2">
+                                {confirmAction.type === 'delete' ? 'Delete Job?' : 'Stop Running Job?'}
+                            </h3>
+                            <p className="text-secondary mb-8">
+                                {confirmAction.type === 'delete'
+                                    ? `This will permanently remove the job "${confirmAction.job.name || 'Untitled'}" and its logs.`
+                                    : `Are you sure you want to halt "${confirmAction.job.name || 'Untitled'}"? This cannot be undone.`}
+                            </p>
+
+                            {/* Buttons */}
+                            <div className="flex gap-4 w-full">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    className="flex-1 py-3 px-6 rounded-xl font-medium text-secondary hover:bg-neutral-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirm}
+                                    className={`flex-1 py-3 px-6 rounded-xl font-bold text-white shadow-lg transition-transform hover:-translate-y-0.5
+                                        ${confirmAction.type === 'delete' ? 'bg-error hover:bg-error/90' : 'bg-primary hover:bg-primary/90'}`}
+                                >
+                                    {confirmAction.type === 'delete' ? 'Yes, Delete' : 'Stop Job'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -223,48 +364,63 @@ export default function Jobs() {
     );
 }
 
+
+function JobDuration({ job }) {
+    const [duration, setDuration] = useState(job.runtime_seconds || 0);
+
+    useEffect(() => {
+        // Update immediately on mount
+        const updateDuration = () => {
+            if (job.status === 'running' && job.started_at) {
+                // Determine start time safely
+                let start;
+                const timestamp = job.started_at;
+
+                // If string doesn't have Z or offset, assume UTC
+                if (typeof timestamp === 'string' && !timestamp.endsWith('Z') && !timestamp.includes('+')) {
+                    start = new Date(timestamp + 'Z').getTime();
+                } else {
+                    start = new Date(timestamp).getTime();
+                }
+
+                // Server time is likely UTC, Client is Local.
+                // We use Date.now() (UTC-based epoch) - start (UTC-based epoch)
+                const now = Date.now();
+                const diff = Math.floor((now - start) / 1000);
+                setDuration(Math.max(0, diff));
+            } else {
+                setDuration(job.runtime_seconds || 0);
+            }
+        };
+
+        updateDuration();
+
+        let interval;
+        if (job.status === 'running') {
+            interval = setInterval(updateDuration, 1000);
+        }
+
+        return () => clearInterval(interval);
+    }, [job.status, job.started_at, job.runtime_seconds]);
+
+    return <p className="text-primary font-mono text-lg">{formatDuration(duration)}</p>;
+}
+
 function StatusIcon({ status }) {
-    if (status === 'running') {
-        return (
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                </svg>
-            </div>
-        );
-    }
-    if (status === 'completed') {
-        return (
-            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12" />
-                </svg>
-            </div>
-        );
-    }
-    if (status === 'failed') {
-        return (
-            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </div>
-        );
-    }
-    return (
-        <div className="w-10 h-10 rounded-full bg-zinc-500/10 flex items-center justify-center text-zinc-500">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-            </svg>
-        </div>
-    );
+    if (status === 'running') return <div className="w-4 h-4 rounded-full bg-accent animate-pulse shadow-[0_0_10px_rgba(234,88,12,0.6)]"></div>;
+    if (status === 'completed') return <div className="w-4 h-4 rounded-full bg-success"></div>;
+    if (status === 'failed') return <div className="w-4 h-4 rounded-full bg-error"></div>;
+    if (status === 'cancelled') return <div className="w-4 h-4 rounded-full bg-neutral-400"></div>;
+    return <div className="w-4 h-4 rounded-full bg-secondary/50"></div>;
 }
 
 function formatDuration(seconds) {
-    if (!seconds) return '--';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    if (mins === 0) return `${secs}s`;
-    return `${mins}m ${secs}s`;
+    if (seconds === undefined || seconds === null) return '--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    return `${m}m ${s}s`;
 }
+

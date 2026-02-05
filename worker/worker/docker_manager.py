@@ -76,13 +76,14 @@ class DockerManager:
             logger.error(f"✗ Error verifying GPU: {e}")
             return False
     
-    def run_job(self, config: ContainerConfig, script_name: str = "train.py") -> str:
+    def run_job(self, config: ContainerConfig, script_name: str = "train.py", launch_args: str = "") -> str:
         """
         Launch an isolated container to execute a user's GPU job.
         
         Args:
             config: Container configuration
             script_name: Name of the script to execute
+            launch_args: Optional custom arguments for the script
             
         Returns:
             container_id: ID of the created container
@@ -99,16 +100,98 @@ class DockerManager:
         # Ensure output directory exists with proper permissions
         output_path.mkdir(parents=True, exist_ok=True)
         import os
-        os.chmod(output_path, 0o777)
+        try:
+            os.chmod(output_path, 0o777)
+        except PermissionError:
+            logger.warning(f"Could not chmod {output_path} - assuming permissions are already sufficient or owned by root")
+
         
         logger.info(f"Launching container for job {config.job_id}")
         logger.info(f"  Image: {config.image}")
         logger.info(f"  Memory: {config.memory_limit}")
         logger.info(f"  CPUs: {config.cpu_count}")
+        if launch_args:
+            logger.info(f"  Args: {launch_args}")
+        
+        # Build wrapper command that auto-installs dependencies
+        # Use environment variables to safely pass script name with special characters
+        wrapper_script = '''
+echo "=========================================="
+echo "HOME-GPU-CLOUD - Job Runner"
+echo "=========================================="
+
+# Step 1: Parse imports and install missing packages
+echo "[1/2] Checking dependencies..."
+python3 -c "
+import subprocess, sys, ast, importlib.util, os
+
+script_name = os.environ.get('SCRIPT_NAME', 'train.py')
+script_path = f'/workspace/input/{script_name}'
+
+try:
+    with open(script_path, 'r') as f:
+        tree = ast.parse(f.read())
+except Exception as e:
+    print(f'Warning: Could not parse script: {e}')
+    sys.exit(0)
+
+imports = set()
+for node in ast.walk(tree):
+    if isinstance(node, ast.Import):
+        for alias in node.names:
+            imports.add(alias.name.split('.')[0])
+    elif isinstance(node, ast.ImportFrom) and node.module:
+        imports.add(node.module.split('.')[0])
+
+# Built-in modules to skip
+builtins = {'os', 'sys', 'time', 'json', 'random', 'math', 'pathlib', 'datetime', 
+             'subprocess', 'typing', 'collections', 'itertools', 'functools', 're', 
+             'io', 'ast', 'logging', 'pickle', 'csv', 'shutil', 'tempfile', 'argparse',
+             'threading', 'multiprocessing', 'uuid', 'hashlib', 'base64', 'urllib',
+             'http', 'socket', 'email', 'html', 'xml', 'sqlite3', 'decimal', 'copy',
+             'platform', 'dataclasses', 'abc', 'enum', 'contextlib', 'warnings',
+             'traceback', 'gc', 'struct', 'array', 'queue', 'heapq', 'bisect',
+             'statistics', 'string', 'textwrap', 'codecs', 'unicodedata', 'locale',
+             'gettext', 'secrets', 'hmac', 'ssl', 'ftplib', 'smtplib', 'telnetlib',
+             'zipfile', 'tarfile', 'gzip', 'bz2', 'lzma', 'configparser', 'netrc',
+             'pprint', 'reprlib', 'dis', 'cProfile', 'profile', 'timeit', 'trace',
+             'unittest', 'doctest', 'test', 'typing_extensions', '__future__'}
+
+# Check which imports need installation
+to_install = []
+for pkg in imports:
+    if pkg in builtins:
+        continue
+    # Special mappings
+    pkg_name = pkg
+    if pkg == 'PIL':
+        pkg_name = 'Pillow'
+    elif pkg == 'cv2':
+        pkg_name = 'opencv-python'
+    elif pkg == 'sklearn':
+        pkg_name = 'scikit-learn'
+    
+    # Check if already installed
+    if importlib.util.find_spec(pkg) is None:
+        to_install.append(pkg_name)
+
+if to_install:
+    print(f'📦 Installing: {to_install}')
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '--no-warn-script-location'] + to_install)
+    print('✓ Dependencies installed')
+else:
+    print('✓ All dependencies already installed')
+"
+
+# Step 2: Run the user's script
+echo "[2/2] Running script: $SCRIPT_NAME $LAUNCH_ARGS"
+echo "=========================================="
+exec python3 "/workspace/input/${SCRIPT_NAME}" ${LAUNCH_ARGS}
+'''
         
         container = self.client.containers.run(
             image=config.image,
-            command=f"python3 /workspace/input/{script_name}",
+            command=["sh", "-c", wrapper_script],
             
             # ═══════════════════════════════════════════
             # VOLUME MOUNTS (NFS → Container)
@@ -122,10 +205,10 @@ class DockerManager:
                     "bind": "/workspace/output",
                     "mode": "rw"  # READ-WRITE: Can write results
                 },
-                # Mount HuggingFace cache for pre-downloaded models
+                # Mount HuggingFace cache for models (rw to allow downloads)
                 "/home/ish/.cache/huggingface": {
                     "bind": "/root/.cache/huggingface",
-                    "mode": "ro"  # READ-ONLY: Use cached models
+                    "mode": "rw"  # READ-WRITE: Allow downloading models
                 }
             },
             working_dir="/workspace",
@@ -135,10 +218,10 @@ class DockerManager:
             # ═══════════════════════════════════════════
             device_requests=[
                 docker.types.DeviceRequest(
-                    count=config.gpu_count,
+                    count=config.gpu_count,  # -1 = all GPUs
                     capabilities=[['gpu']]
                 )
-            ] if config.gpu_count > 0 else None,
+            ] if config.gpu_count != 0 else None,
             
             # ═══════════════════════════════════════════
             # RESOURCE LIMITS (SECURITY)
@@ -161,6 +244,12 @@ class DockerManager:
             cap_drop=["ALL"],
             cap_add=["SYS_PTRACE"],  # For debugging only
             
+            # ═══════════════════════════════════════════
+            # PYTORCH SHARED MEMORY (Required for DataLoader)
+            # ═══════════════════════════════════════════
+            shm_size="8g",  # 8GB shared memory for PyTorch multiprocessing
+            ipc_mode="shareable",  # Allow IPC between processes
+            
             # Execution config
             detach=True,
             auto_remove=False,
@@ -171,6 +260,8 @@ class DockerManager:
                 "JOB_ID": config.job_id,
                 "OUTPUT_DIR": "/workspace/output",
                 "CUDA_VISIBLE_DEVICES": "0",
+                "SCRIPT_NAME": script_name,
+                "LAUNCH_ARGS": launch_args,
             }
         )
         

@@ -76,6 +76,37 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
     return Token(access_token=access_token)
 
 
+@router.post("/guest", response_model=Token)
+def guest_login(db: Session = Depends(get_db)):
+    """Create a new unique guest account."""
+    import uuid
+    
+    # Generate unique guest identity
+    guest_id = str(uuid.uuid4())[:8]
+    email = f"guest-{guest_id}@homegpu.com"
+    # Random password, though they won't use it directly
+    password = str(uuid.uuid4())
+    
+    user = User(
+        email=email,
+        full_name=f"Guest {guest_id}",
+        hashed_password=hash_password(password),
+        is_active=True,
+        is_verified=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Create wallet with initial credits (e.g., $10.00 free credit)
+    wallet = Wallet(user_id=user.id, balance=10.00)
+    db.add(wallet)
+    db.commit()
+    
+    access_token = create_access_token(user.id)
+    return Token(access_token=access_token)
+
+
 @router.get("/me", response_model=UserRead)
 def get_me(current_user: User = Depends(get_current_user)):
     """Get current user profile."""

@@ -1,0 +1,6 @@
+{
+  "test": "Transformer LM Training",
+  "parameters": 70426448,
+  "device": "cuda",
+  "total_time_seconds": 144.22
+}

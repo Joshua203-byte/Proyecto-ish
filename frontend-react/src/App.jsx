@@ -18,15 +18,16 @@ function App() {
   return (
     <AuthProvider>
       <Toaster
-        theme="dark"
-        position="top-right"
+        theme="light"
+        position="bottom-right"
         expand={true}
         richColors
         toastOptions={{
           style: {
-            background: '#09090b',
-            border: '1px solid #27272a',
-            color: '#fff',
+            background: '#ffffff',
+            border: '1px solid #e7e5e4',
+            color: '#1c1917',
+            fontFamily: '"DM Sans", sans-serif',
           },
         }}
       />

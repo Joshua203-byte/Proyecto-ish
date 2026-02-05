@@ -3,14 +3,24 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 body {
   @apply bg-background text-primary antialiased;
 }
 
-/* Custom utilities if needed */
-.glass {
-  @apply bg-surface/50 backdrop-blur-md border border-white/10;
+/* Natural Card Utility */
+.card-natural {
+  @apply bg-surface rounded-4xl shadow-xl border border-border/50;
+}
+
+/* WeTransfer-style large serif headers */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-serif;
 }

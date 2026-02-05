@@ -52,9 +52,10 @@ app = FastAPI(
 )
 
 # CORS middleware
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
+    allow_origins=["*"],  # Allow all origins (Ngrok, Localhost, etc)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,9 +90,17 @@ def health_check():
 
 # Mount frontend static files
 # Priority: 1. React Dist (New), 2. Frontend folder (Legacy)
+# Mount Uploads for Ads - ALWAYS mount this regardless of frontend presence
+# Use path relative to main.py to work in both Docker and Local
+uploads_path = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(uploads_path, exist_ok=True)
+print(f"📂 Mounting /uploads from: {uploads_path}")
+app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+
+# Mount frontend static files
+# Priority: 1. React Dist (New), 2. Frontend folder (Legacy)
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 react_dist_path = os.path.join(base_dir, "frontend-react", "dist")
-legacy_frontend_path = os.path.join(base_dir, "frontend")
 
 if os.path.exists(react_dist_path):
     print(f"📦 Serving New React Frontend from: {react_dist_path}")
@@ -102,7 +111,7 @@ if os.path.exists(react_dist_path):
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         # Ignore API and docs paths
-        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc"):
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("uploads/"):
             raise HTTPException(status_code=404, detail="Not Found")
             
         file_path = os.path.join(react_dist_path, full_path)
@@ -110,9 +119,5 @@ if os.path.exists(react_dist_path):
             return FileResponse(file_path)
             
         return FileResponse(os.path.join(react_dist_path, "index.html"))
-
-elif os.path.exists(legacy_frontend_path):
-    print(f"📦 Serving Legacy Frontend from: {legacy_frontend_path}")
-    app.mount("/", StaticFiles(directory=legacy_frontend_path, html=True), name="static")
 
 # reload trigger

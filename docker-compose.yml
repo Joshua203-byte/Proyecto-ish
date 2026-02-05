@@ -6,6 +6,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
+    restart: always
     container_name: homegpu-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-homegpu}
@@ -23,12 +24,13 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: always
     container_name: homegpu-redis
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -39,6 +41,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: always
     container_name: homegpu-api
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
@@ -46,9 +49,13 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - WORKER_SECRET=${WORKER_SECRET:-secret123}
       - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
+      - WOMPI_SV_APP_ID=b3532b36-7f7c-4b54-9a79-d8fa4e02f23c
+      - WOMPI_SV_API_SECRET=3f7bc61b-b83f-4fc1-858f-3ce7b38682ce
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
     volumes:
       - ./backend:/app
-      - /home/ish/home-gpu-cloud-data:/mnt/home-gpu-cloud
+      - ./data:/mnt/home-gpu-cloud
     ports:
       - "8000:8000"
     depends_on:
@@ -62,6 +69,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: always
     container_name: homegpu-celery-beat
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
@@ -74,6 +82,36 @@ services:
       redis:
         condition: service_healthy
     command: celery -A app.tasks.celery_app beat -l info
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    container_name: homegpu-worker
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - WORKER_SECRET=${WORKER_SECRET:-secret123}
+      - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
+    volumes:
+      - ./backend:/app
+      - ./data:/mnt/home-gpu-cloud
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.tasks.celery_app worker -l info -Q gpu_jobs,celery
+    shm_size: '16gb'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
 
   frontend:
     build:

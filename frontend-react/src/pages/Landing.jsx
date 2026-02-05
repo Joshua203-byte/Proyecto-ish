@@ -23,7 +23,7 @@ export default function Landing() {
                             </svg>
                         </div>
                         <span className="font-bold text-xl tracking-wider font-['Orbitron']">
-                            HOME<span className="text-accent">GPU</span>CLOUD
+                            EPOCHLY<span className="text-accent">CLOUD</span>
                         </span>
                     </Link>
 
@@ -131,7 +131,7 @@ export default function Landing() {
             </section>
 
             <footer className="py-12 border-t border-zinc-900 text-center text-zinc-500 text-sm">
-                &copy; 2026 Home GPU Cloud. All rights reserved.
+                &copy; 2026 Epochly Cloud. All rights reserved.
             </footer>
         </div>
     );

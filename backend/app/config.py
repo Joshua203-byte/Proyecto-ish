@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     WORKER_SECRET: str = "secret123"
     
+    # Simple Admin Access Control
+    ADMIN_EMAILS: List[str] = ["admin@epochly.com", "ish@epochly.com"]
+    
     # Storage
     NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
     MAX_UPLOAD_SIZE_MB: int = 500
@@ -34,8 +37,8 @@ class Settings(BaseSettings):
     WOMPI_SV_API_SECRET: str = ""
     WOMPI_PUB_KEY: str = "pub_test_Q5yDA9Nsa6vdsdf" # Default dev key (Fixed typo)
     
-    # Frontend public URL
-    FRONTEND_URL: str = "http://localhost:8000"
+    # Frontend public URL (Override with env vars in production)
+    FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
     
     # ═══════════════════════════════════════════════════════════════════
@@ -53,11 +56,11 @@ class Settings(BaseSettings):
     CREDITS_PER_MINUTE: float = 0.50 / 60
     
     # Resource Defaults (Local Development Defaults)
-    DEFAULT_GPU_IMAGE: str = "python:3.11-slim"
+    DEFAULT_GPU_IMAGE: str = "nvcr.io/nvidia/pytorch:25.12-py3"  # NGC PyTorch with CUDA (ARM64)
     DEFAULT_MEMORY_LIMIT: str = "4g"
     DEFAULT_CPU_COUNT: int = 2
     DEFAULT_TIMEOUT_SECONDS: int = 3600
-    MAX_TIMEOUT_SECONDS: int = 14400
+    MAX_TIMEOUT_SECONDS: int = 604800  # 1 week
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]

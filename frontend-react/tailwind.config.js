@@ -6,13 +6,26 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['"Montserrat"', 'sans-serif'],
+                serif: ['"Montserrat"', 'sans-serif'],
+            },
             colors: {
-                background: '#09090b', // Zinc-950
-                surface: '#18181b',    // Zinc-900
-                primary: '#fafafa',    // Zinc-50
-                secondary: '#a1a1aa',  // Zinc-400
-                accent: '#2563eb',     // Blue-600
-                border: '#27272a',     // Zinc-800
+                background: '#fcfbf9', // Warm paper
+                surface: '#ffffff',    // Pure clean white
+                primary: '#1c1917',    // Stone-900 (Warm black)
+                secondary: '#57534e',  // Stone-600
+                accent: '#ea580c',     // Orange-600 (Terracotta/Clay vibe - distinct but natural)
+                border: '#e7e5e4',     // Stone-200
+
+                // Keep these for semantic meaning but updated tones
+                success: '#65a30d',    // Lime-600 (Natural green)
+                error: '#dc2626',      // Red-600
+                warning: '#d97706',    // Amber-600
+            },
+            borderRadius: {
+                '4xl': '2rem',
+                '5xl': '3rem',
             }
         },
     },

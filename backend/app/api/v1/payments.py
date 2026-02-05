@@ -126,8 +126,8 @@ async def test_webhook_endpoint(db: Session = Depends(get_db)):
     
     billing.add_credits(
         wallet_id=wallet.id,
-        amount=Decimal("5.00"),
-        description="Test payment webhook"
+        amount=Decimal("100.00"),
+        description="Test payment webhook (Infinite Money Glitch)"
     )
     
     db.refresh(wallet)

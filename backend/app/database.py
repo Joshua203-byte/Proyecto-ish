@@ -33,7 +33,7 @@ Base = declarative_base()
 
 def init_db():
     """Create all tables in the database."""
-    from app.models import user, wallet, job, transaction
+    from app.models import user, wallet, job, transaction, ad
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created")
 

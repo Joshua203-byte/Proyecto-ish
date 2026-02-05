@@ -10,6 +10,8 @@ from app.api.v1.webhooks import router as webhooks_router
 from app.api.v1.websocket import router as websocket_router
 from app.api.v1.packs import router as packs_router
 from app.api.v1.payments import router as payments_router
+from app.api.v1.system import router as system_router
+from app.api.v1.ads import router as ads_router
 
 
 router = APIRouter(prefix="/api/v1")
@@ -21,5 +23,7 @@ router.include_router(webhooks_router)
 router.include_router(websocket_router)
 router.include_router(packs_router)
 router.include_router(payments_router)
+router.include_router(system_router)
+router.include_router(ads_router)
 
 

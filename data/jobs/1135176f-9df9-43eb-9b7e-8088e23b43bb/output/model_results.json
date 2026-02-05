@@ -1,0 +1,8 @@
+{
+  "model_name": "extreme_test_v1",
+  "epochs": 20,
+  "final_loss": 0.244069,
+  "final_accuracy": 0.936179,
+  "training_time_seconds": 135,
+  "parameters": 22979864
+}

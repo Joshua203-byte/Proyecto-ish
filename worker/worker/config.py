@@ -8,7 +8,7 @@ class WorkerSettings(BaseSettings):
     """Worker configuration loaded from environment."""
     
     # Celery / Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:6380/0"
     
     # Backend API
     BACKEND_URL: str = "http://localhost:8000"
@@ -22,7 +22,7 @@ class WorkerSettings(BaseSettings):
     DEFAULT_MEMORY_LIMIT: str = "8g"
     DEFAULT_CPU_COUNT: int = 4
     DEFAULT_TIMEOUT_SECONDS: int = 3600
-    MAX_TIMEOUT_SECONDS: int = 14400
+    MAX_TIMEOUT_SECONDS: int = 604800
     
     # Docker
     GPU_IMAGE: str = "python:3.11-slim"

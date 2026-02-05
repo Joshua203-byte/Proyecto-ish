@@ -55,4 +55,9 @@ def decode_access_token(token: str) -> Optional[UUID]:
 
 def verify_worker_secret(secret: str) -> bool:
     """Verify the worker authentication secret."""
-    return secret == settings.WORKER_SECRET
+    if secret != settings.WORKER_SECRET:
+        print(f"⚠️ [AUTH DEBUG] Worker Secret Mismatch!")
+        print(f"   Received: '{secret}'")
+        print(f"   Expected: '{settings.WORKER_SECRET}'")
+        return False
+    return True

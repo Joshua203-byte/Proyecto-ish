@@ -152,6 +152,27 @@ class JobService:
         
         return self.update_status(job_id, JobStatus.CANCELLED)
     
+    def delete_job(self, job_id: UUID, user_id: UUID) -> bool:
+        """
+        Delete a job record and its associated files.
+        Only works if job is in a terminal state or user is owner.
+        """
+        job = self.get_job(job_id)
+        if not job:
+            return False
+        
+        if job.user_id != user_id:
+            raise PermissionError("Cannot delete another user's job")
+        
+        # Cleanup files first
+        self.cleanup_job_files(job_id)
+        
+        # Delete from DB
+        self.db.delete(job)
+        self.db.commit()
+        
+        return True
+    
     def cleanup_job_files(self, job_id: UUID) -> bool:
         """Delete job files from NFS (admin only)."""
         job_dir = self.nfs_path / "jobs" / str(job_id)

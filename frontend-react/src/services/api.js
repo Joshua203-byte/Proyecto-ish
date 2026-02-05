@@ -2,8 +2,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const api = axios.create({
-    // Use relative path so vite proxy or production same-origin works
-    baseURL: '/api/v1',
+    // Use env var for Vercel, fallback to relative for local/docker
+    baseURL: import.meta.env.VITE_API_URL || '/api/v1',
     timeout: 10000, // 10 seconds timeout
     headers: {
         'Content-Type': 'application/json',
@@ -59,8 +59,15 @@ api.interceptors.response.use(
 
         // Handle 401s
         if (error.response && error.response.status === 401) {
-            console.warn("API returned 401. Since we are in Guest Mode, this might mean token expired but we continue as guest.");
-            // We do NOT redirect to login anymore
+            console.warn("API returned 401 Unauthorized.");
+
+            // Critical Fix: If 401 happens, we might have an invalid token.
+            // We should clear it and prompt user (or auto-guest).
+            // But to avoid infinite loops, we only clear if NOT already on login.
+            if (!isLoginAttempt && !window.location.pathname.includes('/login')) {
+                // Optional: Trigger a re-auth event or just let the user know.
+                // For now, we'll let the UI handle empty states, but logs are clear.
+            }
         }
         return Promise.reject(error);
     }

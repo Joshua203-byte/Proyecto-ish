@@ -1,0 +1,11 @@
+id,text,label,category,score,timestamp
+1,"Este es un ejemplo de texto para entrenar el modelo de lenguaje",positive,A,0.95,2026-01-01 10:00:00
+2,"Otro texto de prueba con más palabras y contenido variado",negative,B,0.32,2026-01-01 10:05:00
+3,"El procesamiento de lenguaje natural es fascinante",positive,A,0.88,2026-01-01 10:10:00
+4,"Los modelos de machine learning requieren muchos datos",neutral,C,0.55,2026-01-01 10:15:00
+5,"Transformers revolucionaron el campo del NLP",positive,A,0.92,2026-01-01 10:20:00
+6,"Algunas predicciones no son muy precisas todavía",negative,B,0.28,2026-01-01 10:25:00
+7,"La inteligencia artificial continúa evolucionando",positive,A,0.85,2026-01-01 10:30:00
+8,"Entrenar modelos grandes consume mucha energía",neutral,C,0.50,2026-01-01 10:35:00
+9,"Las GPUs aceleran significativamente el entrenamiento",positive,A,0.91,2026-01-01 10:40:00
+10,"El fine-tuning permite adaptar modelos a tareas específicas",positive,A,0.87,2026-01-01 10:45:00

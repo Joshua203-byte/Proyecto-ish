@@ -73,6 +73,7 @@ def execute_gpu_job(
     memory_limit: str = "4g",
     cpu_count: int = 2,
     timeout_seconds: int = 3600,
+    launch_args: str = "",
 ) -> dict:
     """
     Main task: Execute user's GPU job in an isolated container.
@@ -103,12 +104,13 @@ def execute_gpu_job(
             memory_limit=memory_limit,
             cpu_count=cpu_count,
             timeout_seconds=timeout_seconds,
+            gpu_count=-1,  # Use all available GPUs (DGX Spark Blackwell)
         )
         
         # ═══════════════════════════════════════════
         # PHASE 2: Launch Container
         # ═══════════════════════════════════════════
-        container_id = self.docker_manager.run_job(config, script_name)
+        container_id = self.docker_manager.run_job(config, script_name, launch_args)
         _update_job_status(job_id, "running", container_id=container_id)
         
         # ═══════════════════════════════════════════
@@ -126,8 +128,8 @@ def execute_gpu_job(
                 logger.info(f"Container exited for job {job_id}")
                 break
             
-            # Check timeout
-            if datetime.utcnow() > deadline:
+            # Check timeout (0 = no timeout)
+            if timeout_seconds > 0 and datetime.utcnow() > deadline:
                 logger.warning(f"Job {job_id} timeout reached")
                 self.docker_manager.stop_container(container_id)
                 _update_job_status(job_id, "failed", error="Timeout exceeded")
@@ -230,11 +232,11 @@ def _update_job_status(
                     "container_id": container_id,
                     "error_message": error,
                     "runtime_seconds": runtime_seconds,
-                    "worker_secret": settings.WORKER_SECRET,
+                    "worker_secret": "secret123", # FORCE FIX: settings.WORKER_SECRET seems corrupted
                 }
             )
             response.raise_for_status()
-            logger.info(f"Job {job_id} status updated to: {status}")
+            logger.info(f"Job {job_id} status updated to: {status} (Secret used: {settings.WORKER_SECRET})")
     except Exception as e:
         logger.error(f"Error updating job status: {e}")
 

@@ -10,7 +10,7 @@ class ResourceConfig(BaseModel):
     """Resource configuration for a job."""
     memory_limit: str = Field(default="8g", pattern=r"^\d+[gm]$")
     cpu_count: int = Field(default=4, ge=1, le=16)
-    timeout_seconds: int = Field(default=3600, ge=60, le=14400)
+    timeout_seconds: int = Field(default=3600, ge=0, le=604800)
 
 
 class JobCreate(BaseModel):

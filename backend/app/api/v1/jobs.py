@@ -1,4 +1,5 @@
 from uuid import UUID
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -15,78 +16,19 @@ from app.services.job_service import JobService
 from app.services.billing import BillingService
 from app.services.storage import StorageService
 from app.config import settings
+from app.tasks.celery_app import celery_app
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
-
-async def simulate_job_execution(job_id: UUID, script_name: str):
-    """Simulate job lifecycle for local development without workers."""
-    db = SessionLocal()
-    try:
-        job_service = JobService(db)
-        storage = StorageService()
-        log_file = storage.nfs_path / "jobs" / str(job_id) / "logs" / "output.log"
-        
-        def append_log(text):
-            with open(log_file, "a") as f:
-                f.write(f"[{datetime.utcnow().strftime('%H:%M:%S')}] {text}\n")
-
-        # 1. Preparing
-        await asyncio.sleep(3)
-        print(f"🛠️ [SIM] Job {job_id} preparing...")
-        job_service.update_status(job_id, JobStatus.PREPARING)
-        append_log("Status: PREPARING")
-        append_log("System: Downloading docker image: nvidia/cuda:12.1...")
-        
-        # 2. Running
-        await asyncio.sleep(5)
-        print(f"🏃 [SIM] Job {job_id} running...")
-        job_service.update_status(job_id, JobStatus.RUNNING)
-        append_log("Status: RUNNING")
-        append_log(f"System: Executing script: {script_name}")
-        append_log("System: Starting training loop...")
-        append_log("User Code: Epoch 1/10 - loss: 0.8521 - accuracy: 0.6210")
-        await asyncio.sleep(5)
-        append_log("User Code: Epoch 5/10 - loss: 0.3241 - accuracy: 0.8842")
-        await asyncio.sleep(5)
-        append_log("User Code: Epoch 10/10 - loss: 0.1215 - accuracy: 0.9650")
-        
-        # 3. Completed
-        await asyncio.sleep(3)
-        print(f"✅ [SIM] Job {job_id} completed!")
-        job_service.update_status(job_id, JobStatus.COMPLETED, runtime_seconds=18)
-        append_log("User Code: Process finished with exit code 0")
-        append_log("System: Training completed. Saving outputs...")
-        append_log("Status: COMPLETED")
-        
-        # Create a dummy output file
-        output_dir = storage.nfs_path / "jobs" / str(job_id) / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        with open(output_dir / "model.pt", "w") as f:
-            f.write("DUMMY_MODEL_WEIGHTS")
-            
-    except Exception as e:
-        print(f"❌ [SIM] Error simulating job: {e}")
-    finally:
-        db.close()
-
-# Celery app for task submission
-celery_app = Celery(
-    "home-gpu-cloud",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
-)
-# Disable eager mode to use real asynchronous workers
-celery_app.conf.task_always_eager = False
-celery_app.conf.task_eager_propagates = False
-celery_app.conf.broker_connection_retry_on_startup = True
 
 @router.post("/", response_model=JobRead, status_code=status.HTTP_201_CREATED)
 async def create_job(
     background_tasks: BackgroundTasks,
     script_file: UploadFile = File(...),
     dataset_file: UploadFile = File(None),
+    email: str = Form(None),
     memory: str = Form("8g"),
     timeout: int = Form(3600),
+    launch_command: str = Form(""),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -95,6 +37,20 @@ async def create_job(
     """
     try:
         print(f"🚀 [JOBS] Starting job creation for user: {current_user.email}")
+        
+        # Update guest email if provided
+        if email and current_user.email.startswith("guest-"):
+            try:
+                print(f"👤 [JOBS] Updating guest email to: {email}")
+                current_user.email = email
+                db.add(current_user)
+                db.commit()
+                db.refresh(current_user)
+            except Exception as e:
+                print(f"⚠️ [JOBS] Failed to update email (likely exists): {e}")
+                db.rollback()
+                # Continue execution even if email update fails
+        
         billing = BillingService(db)
         
         # Check minimum balance
@@ -105,6 +61,22 @@ async def create_job(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Insufficient balance. Minimum {settings.MINIMUM_BALANCE_TO_START} credits required."
             )
+        
+        # Calculate initial cost (e.g. 15 mins reserve or just flat rate for start)
+        # For this version, we deduct a fixed amount or per-minute rate * estimated time.
+        # Let's debit for the full timeout duration upfront or a chunk.
+        # Simpler: Deduct 1 minute cost to start.
+        start_cost = Decimal(str(settings.CREDITS_PER_MINUTE)) * Decimal("5") # Charge 5 mins upfront
+        
+        try:
+             billing.debit_for_job(
+                wallet_id=current_user.wallet.id,
+                job_id=None, # Not created yet, will link later or update logic
+                amount=start_cost,
+                description=f"Job reservation (5 mins)" # Temporary description
+            )
+        except Exception as e:
+             raise HTTPException(status_code=402, detail=f"Payment failed: {str(e)}")
         
         # Create job
         print("📝 [JOBS] Creating DB record...")
@@ -179,6 +151,7 @@ async def create_job(
                     "memory_limit": memory,
                     "cpu_count": settings.DEFAULT_CPU_COUNT,
                     "timeout_seconds": timeout,
+                    "launch_args": launch_command,
                 },
                 queue="gpu_jobs"
             )
@@ -259,6 +232,27 @@ def cancel_job(
         raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{job_id}/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_job(
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a job and its files."""
+    job_service = JobService(db)
+    
+    try:
+        success = job_service.delete_job(job_id, current_user.id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return None
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        print(f"🔥 Error deleting job: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar el trabajo: {str(e)}")
 
 
 @router.get("/{job_id}/logs/")
