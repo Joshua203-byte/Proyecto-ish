@@ -87,7 +87,7 @@ export default function AdBackground() {
     if (loading || ads.length === 0) {
         // Fallback gradient if no ads or loading
         return (
-            <div className="fixed inset-0 -z-10 bg-gradient-to-br from-violet-100 to-indigo-100 animate-gradient-xy"></div>
+            <div className="fixed inset-0 z-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700"></div>
         );
     }
 
