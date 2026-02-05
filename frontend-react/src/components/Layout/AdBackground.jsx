@@ -131,7 +131,7 @@ export default function AdBackground() {
             {/* OVERLAY: Images/Videos only shown if they load successfully */}
             {currentAd && (
                 <div
-                    className={`absolute inset-0 transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    className={`absolute inset-0 transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-100'}`} // Force visible for debug
                 >
                     {isVideo ? (
                         <VideoPlayer
@@ -142,19 +142,27 @@ export default function AdBackground() {
                             onLoadError={() => setImageLoaded(false)}
                         />
                     ) : (
-                        <img
-                            src={getAdSrc(currentAd)}
-                            alt={currentAd.title}
-                            className="w-full h-full object-cover"
-                            onLoad={() => setImageLoaded(true)}
-                            onError={(e) => {
-                                // If ad image fails (e.g. mobile block), swap to guaranteed local asset
-                                if (e.currentTarget.src !== imgPilot) {
-                                    e.currentTarget.src = imgPilot;
-                                    // Don't set opacity to 0, let it swap
-                                }
-                            }}
-                        />
+                        <>
+                            <img
+                                src={getAdSrc(currentAd)}
+                                alt={currentAd.title}
+                                className="w-full h-full object-cover"
+                                onLoad={() => setImageLoaded(true)}
+                                onError={(e) => {
+                                    // DEBUG MODE: Don't swap, just log
+                                    console.error("Image load error:", e.target.src);
+                                    // e.target.style.border = "5px solid red";
+                                }}
+                            />
+                            {/* DEBUG OVERLAY */}
+                            <div className="absolute top-20 left-4 bg-black/80 text-white p-4 text-xs z-50 max-w-xs break-all rounded border border-red-500">
+                                <p className="font-bold text-red-500">DEBUG MODE v29</p>
+                                <p>Title: {currentAd.title}</p>
+                                <p>Original: {currentAd.image_url}</p>
+                                <p>Computed: {getAdSrc(currentAd)}</p>
+                                <p>Status: {imageLoaded ? "LOADED" : "LOADING/ERROR"}</p>
+                            </div>
+                        </>
                     )}
 
                     {/* Dark overlay for readability */}
