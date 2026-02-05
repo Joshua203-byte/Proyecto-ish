@@ -93,11 +93,13 @@ def seed_ads(db: Session = Depends(get_db)):
 from fastapi import File, UploadFile
 import shutil
 import os
+import io
+from PIL import Image, ImageOps
 from app.config import settings
 
 @router.post("/upload")
-def upload_ad_image(file: UploadFile = File(...)):
-    """Upload an image file for an ad."""
+async def upload_ad_image(file: UploadFile = File(...)):
+    """Upload an image file for an ad. Optimizes for mobile."""
     try:
         # Create uploads dir if not exists (backend/app/uploads)
         upload_dir = os.path.join(os.getcwd(), "app", "uploads")
@@ -105,19 +107,34 @@ def upload_ad_image(file: UploadFile = File(...)):
         
         # Clean filename
         safe_filename = file.filename.replace(" ", "_").lower()
+        # Force .webp extension
+        safe_filename = os.path.splitext(safe_filename)[0] + ".webp"
         file_path = os.path.join(upload_dir, safe_filename)
         
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Process image
+        content = await file.read()
+        # Run image processing in thread pool to avoid blocking async loop? 
+        # For simplicity, running direct. 
+        image = Image.open(io.BytesIO(content))
+        
+        # Fix orientation (CRITICAL for mobile uploads)
+        image = ImageOps.exif_transpose(image)
+        
+        # Ensure RGB (fixes CMYK issues)
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+            
+        # Optimize size (max 1920px)
+        if image.width > 1920 or image.height > 1920:
+            image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+            
+        # Save as WebP
+        image.save(file_path, "WEBP", quality=85)
             
         # Return full URL
-        # Assumption: Backend URL serves /uploads
-        # Note: If running via ngrok, this needs to be relative or use the public domain
-        # Ideally, we return a relative path and the frontend handles the domain, 
-        # or we return the full URL if we know it.
-        # For simplicity in this setup:
         file_url = f"/uploads/{safe_filename}"
         
         return {"url": file_url}
     except Exception as e:
+        print(f"Upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
