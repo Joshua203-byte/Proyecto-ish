@@ -136,7 +136,13 @@ export default function AdBackground() {
                             alt={currentAd.title}
                             className="w-full h-full object-cover"
                             onLoad={() => setImageLoaded(true)}
-                            onError={() => setImageLoaded(false)}
+                            onError={(e) => {
+                                // If ad image fails (e.g. mobile block), swap to guaranteed local asset
+                                if (e.currentTarget.src !== imgPilot) {
+                                    e.currentTarget.src = imgPilot;
+                                    // Don't set opacity to 0, let it swap
+                                }
+                            }}
                         />
                     )}
 
