@@ -149,17 +149,28 @@ export default function AdBackground() {
 
 function VideoPlayer({ src, isActive, onEnded, shouldLoop }) {
     const videoRef = useRef(null);
+    const [videoError, setVideoError] = useState(false);
 
     useEffect(() => {
-        if (isActive && videoRef.current) {
+        if (isActive && videoRef.current && !videoError) {
             // Force play when active
-            videoRef.current.play().catch(e => console.log("Autoplay prevented:", e));
+            videoRef.current.play().catch(e => {
+                console.log("Autoplay prevented:", e);
+                setVideoError(true); // Fallback to gradient
+            });
         } else if (!isActive && videoRef.current) {
             // Pause and reset when not active
             videoRef.current.pause();
             videoRef.current.currentTime = 0;
         }
-    }, [isActive]);
+    }, [isActive, videoError]);
+
+    // Fallback gradient when video fails
+    if (videoError) {
+        return (
+            <div className="w-full h-full bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 animate-gradient-xy" />
+        );
+    }
 
     return (
         <video
@@ -167,9 +178,11 @@ function VideoPlayer({ src, isActive, onEnded, shouldLoop }) {
             src={src}
             className="w-full h-full object-cover opacity-90"
             muted
+            autoPlay
             playsInline
             onEnded={onEnded}
             loop={shouldLoop}
+            onError={() => setVideoError(true)}
         />
     );
 }
