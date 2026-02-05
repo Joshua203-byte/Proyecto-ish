@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { getAssetUrl } from '../../utils/url';
 
+// Local assets for guaranteed mobile loading
+import imgPilot from '../../assets/ads/pilot.webp';
+import imgResearcher from '../../assets/ads/researcher.webp';
+import imgLab from '../../assets/ads/lab.webp';
+
 export default function AdBackground() {
     const [ads, setAds] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -13,28 +18,36 @@ export default function AdBackground() {
             {
                 id: "ad_def_1",
                 title: "Epochly Pilot",
-                image_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1280&auto=format&fit=crop",
+                image_url: imgPilot,
                 target_url: "/dashboard/wallet",
-                duration_seconds: 10
+                duration_seconds: 10,
+                is_local: true
             },
             {
                 id: "ad_def_2",
                 title: "Epochly Researcher",
-                image_url: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1280&auto=format&fit=crop",
+                image_url: imgResearcher,
                 target_url: "/dashboard/wallet",
-                duration_seconds: 10
+                duration_seconds: 10,
+                is_local: true
             },
             {
                 id: "ad_def_3",
                 title: "Epochly Lab",
-                image_url: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1280&auto=format&fit=crop",
+                image_url: imgLab,
                 target_url: "/dashboard/wallet",
-                duration_seconds: 10
+                duration_seconds: 10,
+                is_local: true
             }
         ];
 
         const fetchAds = async () => {
             try {
+                // If we want to guarantee local ads ALWAYS show on mobile/slow connections,
+                // we could prioritize defaults or mix them.
+                // For now, adhering to logic: try API, fallback to defaults.
+                // If API returns ads but they fail to load (e.g. Unsplash blocked),
+                // the gradient handles it gracefully.
                 const { data } = await api.get('/ads/');
                 if (Array.isArray(data) && data.length > 0) {
                     setAds(data);
@@ -79,6 +92,12 @@ export default function AdBackground() {
     const isVideo = currentAd?.media_type === 'video' || currentAd?.image_url?.endsWith('.mp4');
     const isSingleAd = ads.length === 1;
 
+    // Helper to resolve image source
+    const getAdSrc = (ad) => {
+        if (ad.is_local) return ad.image_url;
+        return getAssetUrl(ad.image_url);
+    };
+
     return (
         <div className="fixed inset-0 z-0 overflow-hidden">
             {/* BASE: Always visible animated gradient - the main design */}
@@ -97,7 +116,7 @@ export default function AdBackground() {
                 >
                     {isVideo ? (
                         <VideoPlayer
-                            src={getAssetUrl(currentAd.image_url)}
+                            src={getAdSrc(currentAd)}
                             onEnded={handleVideoEnded}
                             shouldLoop={currentAd.duration_seconds < 15 || isSingleAd}
                             onLoadSuccess={() => setImageLoaded(true)}
@@ -105,7 +124,7 @@ export default function AdBackground() {
                         />
                     ) : (
                         <img
-                            src={getAssetUrl(currentAd.image_url)}
+                            src={getAdSrc(currentAd)}
                             alt={currentAd.title}
                             className="w-full h-full object-cover"
                             onLoad={() => setImageLoaded(true)}
