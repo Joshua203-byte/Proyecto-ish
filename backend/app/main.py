@@ -55,7 +55,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (Ngrok, Localhost, etc)
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,12 +98,11 @@ print(f"📂 Mounting /uploads from: {uploads_path}")
 app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
 
 # Mount frontend static files
-# Priority: 1. React Dist (New), 2. Frontend folder (Legacy)
-base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-react_dist_path = os.path.join(base_dir, "frontend-react", "dist")
+# Priority: 1. Embedded Frontend (Monolith Deploy)
+react_dist_path = os.path.join(os.path.dirname(__file__), "frontend_dist")
 
 if os.path.exists(react_dist_path):
-    print(f"📦 Serving New React Frontend from: {react_dist_path}")
+    print(f"📦 Serving Embedded React Frontend from: {react_dist_path}")
     # Mount assets and other static files first
     app.mount("/assets", StaticFiles(directory=os.path.join(react_dist_path, "assets")), name="assets")
     
