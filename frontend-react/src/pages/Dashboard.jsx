@@ -7,7 +7,7 @@ import AdminAds from './AdminAds';
 
 export default function Dashboard() {
     return (
-        <div className="min-h-screen bg-background text-primary font-sans selection:bg-accent selection:text-white">
+        <div className="min-h-screen bg-transparent text-primary font-sans selection:bg-accent selection:text-white">
             <Navbar />
 
             {/* Main Content with padding for fixed navbar */}

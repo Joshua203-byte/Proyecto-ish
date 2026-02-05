@@ -7,7 +7,7 @@
 }
 
 body {
-  @apply bg-background text-primary antialiased;
+  @apply text-primary antialiased;
 }
 
 /* Natural Card Utility */
