@@ -88,6 +88,14 @@ export default function AdBackground() {
         setCurrentIndex((prev) => (prev + 1) % ads.length);
     };
 
+    // Safety Net: Force image visibility if onLoad doesn't fire (common mobile issue)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setImageLoaded(true);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [currentIndex]);
+
     const currentAd = ads[currentIndex];
     const isVideo = currentAd?.media_type === 'video' || currentAd?.image_url?.endsWith('.mp4');
     const isSingleAd = ads.length === 1;
