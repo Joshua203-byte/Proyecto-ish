@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://uncontemned-terina-isoperimetrical.ngrok-free.dev/api/v1')
+  },
   server: {
     proxy: {
       '/api': {
