@@ -118,7 +118,7 @@ export default function AdBackground() {
     };
 
     return (
-        <div className="fixed inset-0 z-0 overflow-hidden">
+        <div className="fixed inset-0 z-0 overflow-hidden w-full h-full min-h-[100dvh]">
             {/* BASE: Always visible animated gradient - the main design */}
             <div
                 className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700"
@@ -131,7 +131,7 @@ export default function AdBackground() {
             {/* OVERLAY: Images/Videos only shown if they load successfully */}
             {currentAd && (
                 <div
-                    className={`absolute inset-0 transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-100'}`} // Force visible for debug
+                    className={`absolute inset-0 transition-opacity duration-1000 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
                 >
                     {isVideo ? (
                         <VideoPlayer
@@ -149,19 +149,13 @@ export default function AdBackground() {
                                 className="w-full h-full object-cover"
                                 onLoad={() => setImageLoaded(true)}
                                 onError={(e) => {
-                                    // DEBUG MODE: Don't swap, just log
-                                    console.error("Image load error:", e.target.src);
-                                    // e.target.style.border = "5px solid red";
+                                    // If ad image fails (e.g. mobile block), swap to guaranteed local asset
+                                    if (e.currentTarget.src !== imgPilot) {
+                                        e.currentTarget.src = imgPilot;
+                                        // Don't set opacity to 0, let it swap
+                                    }
                                 }}
                             />
-                            {/* DEBUG OVERLAY */}
-                            <div className="absolute top-20 left-4 bg-black/80 text-white p-4 text-xs z-50 max-w-xs break-all rounded border border-red-500">
-                                <p className="font-bold text-red-500">DEBUG MODE v29</p>
-                                <p>Title: {currentAd.title}</p>
-                                <p>Original: {currentAd.image_url}</p>
-                                <p>Computed: {getAdSrc(currentAd)}</p>
-                                <p>Status: {imageLoaded ? "LOADED" : "LOADING/ERROR"}</p>
-                            </div>
                         </>
                     )}
 
@@ -210,6 +204,7 @@ function VideoPlayer({ src, onEnded, shouldLoop, onLoadSuccess, onLoadError }) {
             muted
             autoPlay
             playsInline
+            webkit-playsinline="true"
             onEnded={onEnded}
             loop={shouldLoop}
             onLoadedData={onLoadSuccess}
