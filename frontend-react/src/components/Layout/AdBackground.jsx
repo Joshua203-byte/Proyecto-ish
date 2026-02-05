@@ -13,21 +13,21 @@ export default function AdBackground() {
             {
                 id: "ad_def_1",
                 title: "Epochly Pilot",
-                image_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+                image_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1280&auto=format&fit=crop",
                 target_url: "/dashboard/wallet",
                 duration_seconds: 10
             },
             {
                 id: "ad_def_2",
                 title: "Epochly Researcher",
-                image_url: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2574&auto=format&fit=crop",
+                image_url: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1280&auto=format&fit=crop",
                 target_url: "/dashboard/wallet",
                 duration_seconds: 10
             },
             {
                 id: "ad_def_3",
                 title: "Epochly Lab",
-                image_url: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=2535&auto=format&fit=crop",
+                image_url: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1280&auto=format&fit=crop",
                 target_url: "/dashboard/wallet",
                 duration_seconds: 10
             }
