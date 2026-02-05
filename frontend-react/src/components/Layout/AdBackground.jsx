@@ -6,6 +6,7 @@ import { getAssetUrl } from '../../utils/url';
 import imgPilot from '../../assets/ads/pilot.webp';
 import imgResearcher from '../../assets/ads/researcher.webp';
 import imgLab from '../../assets/ads/lab.webp';
+import imgShirt from '../../assets/ads/green_shirt.webp';
 
 export default function AdBackground() {
     const [ads, setAds] = useState([]);
@@ -102,6 +103,12 @@ export default function AdBackground() {
 
     // Helper to resolve image source
     const getAdSrc = (ad) => {
+        // PERMANENT FIX: If ad title mentions "shirt" or "green", FORCE the local green shirt asset
+        // This bypasses any broken backend URLs or missing uploads
+        if (ad.title && (ad.title.toLowerCase().includes('shirt') || ad.title.toLowerCase().includes('green') || ad.title.toLowerCase().includes('verde') || ad.title.toLowerCase().includes('camisa'))) {
+            return imgShirt;
+        }
+
         if (ad.is_local) return ad.image_url;
         return getAssetUrl(ad.image_url);
     };
