@@ -107,20 +107,19 @@ async def upload_ad_image(file: UploadFile = File(...)):
         
         # Clean filename
         safe_filename = file.filename.replace(" ", "_").lower()
-        # Force .webp extension
-        safe_filename = os.path.splitext(safe_filename)[0] + ".webp"
+        # Force .jpg extension for maximum compatibility
+        safe_filename = os.path.splitext(safe_filename)[0] + ".jpg"
         file_path = os.path.join(upload_dir, safe_filename)
         
         # Process image
         content = await file.read()
-        # Run image processing in thread pool to avoid blocking async loop? 
-        # For simplicity, running direct. 
+        # Run image processing
         image = Image.open(io.BytesIO(content))
         
-        # Fix orientation (CRITICAL for mobile uploads)
+        # Fix orientation
         image = ImageOps.exif_transpose(image)
         
-        # Ensure RGB (fixes CMYK issues)
+        # Ensure RGB
         if image.mode != "RGB":
             image = image.convert("RGB")
             
@@ -128,8 +127,8 @@ async def upload_ad_image(file: UploadFile = File(...)):
         if image.width > 1920 or image.height > 1920:
             image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
             
-        # Save as WebP
-        image.save(file_path, "WEBP", quality=85)
+        # Save as JPEG (Quality 85 is good balance)
+        image.save(file_path, "JPEG", quality=85)
             
         # Return full URL
         file_url = f"/uploads/{safe_filename}"
