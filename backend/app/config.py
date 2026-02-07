@@ -14,7 +14,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # Database
-    DATABASE_URL: str = "postgresql://homegpu:changeme@localhost:5432/homegpu"
+    # Database (Default to SQLite for immediate Heroku startup without addons)
+    DATABASE_URL: str = "sqlite:///./homegpu.db"
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -63,7 +64,7 @@ class Settings(BaseSettings):
     MAX_TIMEOUT_SECONDS: int = 604800  # 1 week
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://epochly-6cfe3bca2ff5.herokuapp.com"]
     
     class Config:
         env_file = ".env"
