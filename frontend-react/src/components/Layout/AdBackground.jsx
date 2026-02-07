@@ -104,6 +104,8 @@ export default function AdBackground() {
     // Helper to resolve image source
     const getAdSrc = (ad) => {
         if (ad.is_local) return ad.image_url;
+
+        const url = getAssetUrl(ad.image_url);
         const cacheBuster = Math.floor(Date.now() / 60000);
         return `${url}?t=${cacheBuster}`;
     };
