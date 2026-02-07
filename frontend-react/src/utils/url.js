@@ -1,5 +1,6 @@
 /**
  * Constructs a full URL for an asset hosted on the backend.
+ * // Force Rebuild v38 - Cache Buster
  * @param {string} path - The relative path from the backend root (e.g., "/uploads/image.png")
  * @returns {string} - The full URL (e.g., "https://api.example.com/uploads/image.png")
  */
