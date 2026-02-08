@@ -78,7 +78,7 @@ export default function NewJob() {
                                 flex items-center gap-4 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors
                                 ${script ? 'border-accent bg-accent/5' : 'border-neutral-300 hover:border-neutral-400'}
                             `}>
-                                <input type="file" accept=".py" onChange={e => setScript(e.target.files[0])} className="hidden" />
+                                <input type="file" accept=".py,.ipynb" onChange={e => setScript(e.target.files[0])} className="hidden" />
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${script ? 'bg-accent text-white' : 'bg-neutral-100 text-neutral-500'}`}>
                                     <span className="font-bold text-lg">{script ? '✓' : '{}'}</span>
                                 </div>
