@@ -95,7 +95,7 @@ def download_job_files(
     
     # Get job info
     job_service = JobService(db)
-    job = job_service.get(job_id)
+    job = job_service.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
