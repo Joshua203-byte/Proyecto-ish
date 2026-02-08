@@ -1,7 +1,7 @@
 """
 Webhook endpoints for worker communication.
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
@@ -153,5 +153,44 @@ def upload_job_logs(
         f.write(logs)
     
     return {"status": "uploaded", "job_id": job_id}
+
+
+@router.post("/upload-results/{job_id}")
+async def upload_job_results(
+    job_id: str,
+    worker_secret: str,
+    results_file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Webhook for worker to upload job results after execution.
+    
+    Receives a zip file containing output files from the worker.
+    """
+    from fastapi import UploadFile, File
+    from pathlib import Path
+    from app.config import settings
+    import shutil
+    
+    # Verify worker authentication
+    verify_worker(worker_secret)
+    
+    # Get job info
+    job_service = JobService(db)
+    job = job_service.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Save results zip to storage
+    output_path = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "output"
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    # Save the uploaded zip file
+    zip_file_path = output_path / "results.zip"
+    with open(zip_file_path, "wb") as f:
+        shutil.copyfileobj(results_file.file, f)
+    
+    return {"status": "uploaded", "job_id": job_id}
+
 
 

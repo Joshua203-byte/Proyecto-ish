@@ -188,6 +188,8 @@ def execute_gpu_job(
         exit_code = final_status.get("exit_code", -1)
         
         if exit_code == 0:
+            # Upload results to backend for download
+            _upload_results_to_backend(job_id)
             _update_job_status(job_id, "completed", runtime_seconds=runtime_seconds)
             return {
                 "success": True,
@@ -313,6 +315,46 @@ def _upload_logs_to_backend(job_id: str, logs: str) -> None:
             logger.info(f"Logs uploaded to backend for job {job_id}")
     except Exception as e:
         logger.error(f"Error uploading logs to backend: {e}")
+
+
+def _upload_results_to_backend(job_id: str) -> None:
+    """Upload job output files to backend for download."""
+    import zipfile
+    import tempfile
+    
+    try:
+        output_path = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "output"
+        
+        if not output_path.exists() or not any(output_path.iterdir()):
+            logger.info(f"No output files to upload for job {job_id}")
+            return
+        
+        # Create a zip file of all output
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file_path in output_path.iterdir():
+                if file_path.is_file():
+                    zf.write(file_path, file_path.name)
+        
+        # Upload to backend
+        upload_url = f"{settings.BACKEND_URL}/webhooks/upload-results/{job_id}"
+        
+        with httpx.Client(timeout=120) as client:
+            with open(temp_zip.name, "rb") as f:
+                response = client.post(
+                    upload_url,
+                    params={"worker_secret": settings.WORKER_SECRET},
+                    files={"results_file": ("results.zip", f, "application/zip")}
+                )
+                response.raise_for_status()
+                logger.info(f"Results uploaded to backend for job {job_id}")
+        
+        # Cleanup temp file
+        import os
+        os.unlink(temp_zip.name)
+        
+    except Exception as e:
+        logger.error(f"Error uploading results to backend: {e}")
 
 
 def _download_job_files(job_id: str) -> None:
