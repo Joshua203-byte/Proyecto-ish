@@ -9,6 +9,7 @@ export default function NewJob() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [showInstructions, setShowInstructions] = useState(false);
     const [script, setScript] = useState(null);
     const [dataset, setDataset] = useState(null);
     const [formData, setFormData] = useState({
@@ -179,6 +180,41 @@ export default function NewJob() {
                                     </select>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* 4. Instructions Collapsible */}
+                        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+                            <button
+                                type="button"
+                                onClick={() => setShowInstructions(!showInstructions)}
+                                className="w-full flex items-center justify-between px-4 py-2 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                            >
+                                <span className="text-xs font-bold uppercase tracking-wider text-secondary">
+                                    📋 Instructions & Requirements
+                                </span>
+                                <span className="text-secondary text-lg">{showInstructions ? '−' : '+'}</span>
+                            </button>
+                            {showInstructions && (
+                                <div className="px-4 py-3 text-xs text-secondary space-y-2 bg-white">
+                                    <p className="font-semibold text-primary">File Paths:</p>
+                                    <ul className="list-disc list-inside space-y-1 ml-1">
+                                        <li><code className="bg-neutral-100 px-1 rounded">/workspace/input/</code> — Your script & dataset</li>
+                                        <li><code className="bg-neutral-100 px-1 rounded">/workspace/output/</code> — Save results here</li>
+                                    </ul>
+                                    <p className="font-semibold text-primary pt-2">Script Requirements:</p>
+                                    <ul className="list-disc list-inside space-y-1 ml-1">
+                                        <li>Use <code className="bg-neutral-100 px-1 rounded">.py</code> or <code className="bg-neutral-100 px-1 rounded">.ipynb</code> files</li>
+                                        <li>Dependencies are auto-installed from imports</li>
+                                        <li>GPU available via PyTorch/TensorFlow</li>
+                                    </ul>
+                                    <p className="font-semibold text-primary pt-2">Dataset Tips:</p>
+                                    <ul className="list-disc list-inside space-y-1 ml-1">
+                                        <li>Supported: .zip, .tar.gz, .csv, .pkl</li>
+                                        <li>Max upload time: 10 minutes</li>
+                                        <li>Files extracted to <code className="bg-neutral-100 px-1 rounded">/workspace/input/</code></li>
+                                    </ul>
+                                </div>
+                            )}
                         </div>
 
                         {/* 4. Submit */}
