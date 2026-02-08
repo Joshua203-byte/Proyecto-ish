@@ -118,3 +118,40 @@ def download_job_files(
         filename=f"job-{job_id}-input.zip"
     )
 
+
+@router.post("/upload-logs/{job_id}")
+def upload_job_logs(
+    job_id: str,
+    worker_secret: str,
+    logs: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Webhook for worker to upload job logs after execution.
+    
+    This allows the frontend to display logs even though
+    the job ran on a remote worker (DGX).
+    """
+    from pathlib import Path
+    from app.config import settings
+    
+    # Verify worker authentication
+    verify_worker(worker_secret)
+    
+    # Get job info
+    job_service = JobService(db)
+    job = job_service.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Save logs to storage
+    logs_path = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "logs"
+    logs_path.mkdir(parents=True, exist_ok=True)
+    
+    log_file = logs_path / "output.log"
+    with open(log_file, "w") as f:
+        f.write(logs)
+    
+    return {"status": "uploaded", "job_id": job_id}
+
+

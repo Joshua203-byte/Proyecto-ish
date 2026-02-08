@@ -278,7 +278,7 @@ def _billing_heartbeat(job_id: str, runtime_minutes: int) -> bool:
 
 
 def _save_logs(job_id: str, logs: str) -> None:
-    """Save container logs to NFS."""
+    """Save container logs to NFS and upload to backend."""
     try:
         log_dir = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -288,8 +288,31 @@ def _save_logs(job_id: str, logs: str) -> None:
             f.write(logs)
         
         logger.info(f"Logs saved to {log_file}")
+        
+        # Also upload logs to backend so frontend can display them
+        _upload_logs_to_backend(job_id, logs)
+        
     except Exception as e:
         logger.error(f"Error saving logs: {e}")
+
+
+def _upload_logs_to_backend(job_id: str, logs: str) -> None:
+    """Upload logs to backend for frontend display."""
+    try:
+        upload_url = f"{settings.BACKEND_URL}/webhooks/upload-logs/{job_id}"
+        
+        with httpx.Client(timeout=30) as client:
+            response = client.post(
+                upload_url,
+                params={
+                    "worker_secret": settings.WORKER_SECRET,
+                    "logs": logs[:100000]  # Limit to 100KB
+                }
+            )
+            response.raise_for_status()
+            logger.info(f"Logs uploaded to backend for job {job_id}")
+    except Exception as e:
+        logger.error(f"Error uploading logs to backend: {e}")
 
 
 def _download_job_files(job_id: str) -> None:
