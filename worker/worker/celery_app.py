@@ -2,12 +2,29 @@
 Celery application configuration for the GPU worker.
 """
 from celery import Celery
-from worker.config import settings
+from .config import settings
+
+import ssl
+
+# Configure SSL for Heroku Redis (rediss://)
+redis_url = settings.REDIS_URL
+broker_use_ssl = None
+backend_use_ssl = None
+
+if redis_url.startswith("rediss://"):
+    broker_use_ssl = {
+        'ssl_cert_reqs': ssl.CERT_NONE
+    }
+    backend_use_ssl = {
+        'ssl_cert_reqs': ssl.CERT_NONE
+    }
 
 celery_app = Celery(
     "home-gpu-cloud-worker",
-    broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    broker=redis_url,
+    backend=redis_url,
+    broker_use_ssl=broker_use_ssl,
+    redis_backend_use_ssl=backend_use_ssl,
 )
 
 celery_app.conf.update(
@@ -27,4 +44,4 @@ celery_app.conf.update(
 )
 
 # Import tasks to register them
-from worker.tasks import gpu_tasks  # noqa: F401, E402
+from .tasks import gpu_tasks  # noqa: F401, E402

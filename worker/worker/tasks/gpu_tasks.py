@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Optional
 
 from celery import Task
-from worker.celery_app import celery_app
-from worker.docker_manager import DockerManager, ContainerConfig
-from worker.config import settings
+from ..celery_app import celery_app
+from ..docker_manager import DockerManager, ContainerConfig
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
