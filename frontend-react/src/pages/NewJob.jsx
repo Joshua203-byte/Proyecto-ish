@@ -95,7 +95,7 @@ export default function NewJob() {
 
                         {/* 2. Dataset (Secondary) */}
                         <div className="relative">
-                            <input type="file" id="ds" onChange={e => setDataset(e.target.files[0])} className="hidden" />
+                            <input type="file" id="ds" accept=".zip,.csv,.pkl,.tar,.tar.gz,.tgz,application/zip,application/x-tar,application/gzip,application/x-gzip,text/csv" onChange={e => setDataset(e.target.files[0])} className="hidden" />
                             <label htmlFor="ds" className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
                                 <span className={`text-xs font-bold uppercase tracking-wider ${dataset ? 'text-accent' : 'text-secondary'}`}>
                                     {dataset ? 'DATASET ADDED' : '+ ADD DATASET'}
