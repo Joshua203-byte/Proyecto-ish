@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'sonner';
+import JSZip from 'jszip'; // Import JSZip
 
 import AdBackground from '../components/Layout/AdBackground';
 
@@ -11,7 +12,7 @@ export default function NewJob() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [showInstructions, setShowInstructions] = useState(false);
     const [script, setScript] = useState(null);
-    const [dataset, setDataset] = useState(null);
+    const [datasetFiles, setDatasetFiles] = useState([]); // Changed to array
     const [formData, setFormData] = useState({
         email: '',
         memory: '8g',
@@ -39,7 +40,36 @@ export default function NewJob() {
 
         const data = new FormData();
         data.append('script_file', script);
-        if (dataset) data.append('dataset_file', dataset);
+
+        // Handle Dataset (Single or Multiple)
+        if (datasetFiles.length > 0) {
+            if (datasetFiles.length === 1 && !datasetFiles[0].name.endsWith('.json')) {
+                // Single file (non-JSON): Send directly
+                data.append('dataset_file', datasetFiles[0]);
+            } else {
+                // Multiple files OR Single JSON: Zip them client-side
+                try {
+                    const zip = new JSZip();
+
+                    // Add files to zip
+                    for (let i = 0; i < datasetFiles.length; i++) {
+                        const file = datasetFiles[i];
+                        zip.file(file.name, file);
+                    }
+
+                    const content = await zip.generateAsync({ type: "blob" });
+                    const zipFile = new File([content], "dataset.zip", { type: "application/zip" });
+                    data.append('dataset_file', zipFile);
+
+                } catch (err) {
+                    console.error("Zipping error:", err);
+                    toast.error("Failed to process dataset files");
+                    setLoading(false);
+                    return;
+                }
+            }
+        }
+
         data.append('email', formData.email);
         data.append('memory', formData.memory);
         data.append('timeout', formData.timeout);
@@ -132,12 +162,23 @@ export default function NewJob() {
 
                         {/* 2. Dataset (Secondary) */}
                         <div className="relative">
-                            <input type="file" id="ds" accept=".zip,.csv,.pkl,.tar,.tar.gz,.tgz,application/zip,application/x-tar,application/gzip,application/x-gzip,text/csv" onChange={e => setDataset(e.target.files[0])} className="hidden" />
+                            <input
+                                type="file"
+                                id="ds"
+                                multiple // Allow multiple files
+                                accept=".json,.zip,.csv,.pkl,.tar,.tar.gz,.tgz,application/zip,application/x-tar,application/gzip,application/x-gzip,text/csv,application/json"
+                                onChange={e => setDatasetFiles(Array.from(e.target.files))}
+                                className="hidden"
+                            />
                             <label htmlFor="ds" className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
-                                <span className={`text-xs font-bold uppercase tracking-wider ${dataset ? 'text-accent' : 'text-secondary'}`}>
-                                    {dataset ? 'DATASET ADDED' : '+ ADD DATASET'}
+                                <span className={`text-xs font-bold uppercase tracking-wider ${datasetFiles.length > 0 ? 'text-accent' : 'text-secondary'}`}>
+                                    {datasetFiles.length > 0 ? 'DATASET ADDED' : '+ ADD DATASET'}
                                 </span>
-                                {dataset && <span className="text-sm text-primary truncate">{dataset.name}</span>}
+                                {datasetFiles.length > 0 && (
+                                    <span className="text-sm text-primary truncate">
+                                        {datasetFiles.length === 1 ? datasetFiles[0].name : `${datasetFiles.length} files selected`}
+                                    </span>
+                                )}
                             </label>
                         </div>
 
