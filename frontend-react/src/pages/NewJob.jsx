@@ -165,21 +165,50 @@ export default function NewJob() {
                             <input
                                 type="file"
                                 id="ds"
-                                multiple // Allow multiple files
+                                multiple
                                 accept=".json,.zip,.csv,.pkl,.tar,.tar.gz,.tgz,application/zip,application/x-tar,application/gzip,application/x-gzip,text/csv,application/json"
-                                onChange={e => setDatasetFiles(Array.from(e.target.files))}
+                                onChange={e => {
+                                    const newFiles = Array.from(e.target.files);
+                                    setDatasetFiles(prev => {
+                                        // Avoid duplicates by name
+                                        const existingNames = new Set(prev.map(f => f.name));
+                                        const uniqueNewFiles = newFiles.filter(f => !existingNames.has(f.name));
+                                        return [...prev, ...uniqueNewFiles];
+                                    });
+                                    // Reset input value to allow selecting the same file again if needed (after removing)
+                                    e.target.value = null;
+                                }}
                                 className="hidden"
                             />
                             <label htmlFor="ds" className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-neutral-100 transition-colors">
                                 <span className={`text-xs font-bold uppercase tracking-wider ${datasetFiles.length > 0 ? 'text-accent' : 'text-secondary'}`}>
-                                    {datasetFiles.length > 0 ? 'DATASET ADDED' : '+ ADD DATASET'}
+                                    {datasetFiles.length > 0 ? '+ ADD MORE FILES' : '+ ADD DATASET'}
                                 </span>
                                 {datasetFiles.length > 0 && (
                                     <span className="text-sm text-primary truncate">
-                                        {datasetFiles.length === 1 ? datasetFiles[0].name : `${datasetFiles.length} files selected`}
+                                        {datasetFiles.length} files selected
                                     </span>
                                 )}
                             </label>
+
+                            {/* Selected Files List */}
+                            {datasetFiles.length > 0 && (
+                                <div className="mt-2 max-h-32 overflow-y-auto border border-neutral-200 rounded-lg bg-neutral-50 px-2 py-1">
+                                    {datasetFiles.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-neutral-200 last:border-0">
+                                            <span className="truncate max-w-[80%] text-secondary">{file.name}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDatasetFiles(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-red-500 hover:text-red-700 font-bold px-1"
+                                                title="Remove file"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* 3. Settings Grid */}
