@@ -205,16 +205,19 @@ else:
 echo "[2/2] Running script: $SCRIPT_NAME $LAUNCH_ARGS"
 echo "=========================================="
 
-# Check if it's a notebook file
-if [[ "$SCRIPT_NAME" == *.ipynb ]]; then
-    echo "Detected Jupyter notebook, converting to Python..."
-    # Install jupyter if not present
-    pip install -q nbconvert ipykernel 2>/dev/null || true
-    # Convert notebook to Python and execute
-    jupyter nbconvert --to script "/workspace/input/${SCRIPT_NAME}" --stdout 2>/dev/null | python3
-else
-    exec python3 "/workspace/input/${SCRIPT_NAME}" ${LAUNCH_ARGS}
-fi
+# Check if it's a notebook file (POSIX-compatible)
+case "$SCRIPT_NAME" in
+    *.ipynb)
+        echo "Detected Jupyter notebook, converting to Python..."
+        # Install jupyter if not present
+        pip install -q nbconvert ipykernel 2>/dev/null || true
+        # Convert notebook to Python and execute
+        jupyter nbconvert --to script "/workspace/input/${SCRIPT_NAME}" --stdout 2>/dev/null | python3
+        ;;
+    *)
+        exec python3 "/workspace/input/${SCRIPT_NAME}" ${LAUNCH_ARGS}
+        ;;
+esac
 '''
         
         container = self.client.containers.run(
