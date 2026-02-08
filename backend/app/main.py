@@ -106,6 +106,14 @@ if os.path.exists(react_dist_path):
     # Mount assets and other static files first
     app.mount("/assets", StaticFiles(directory=os.path.join(react_dist_path, "assets")), name="assets")
     
+    # Explicit favicon route (before catch-all)
+    @app.get("/favicon.ico")
+    async def serve_favicon():
+        favicon_path = os.path.join(react_dist_path, "favicon.ico")
+        if os.path.exists(favicon_path):
+            return FileResponse(favicon_path, media_type="image/x-icon")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    
     # Catch-all for SPA routing
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
