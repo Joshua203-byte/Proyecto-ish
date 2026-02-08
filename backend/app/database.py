@@ -9,6 +9,7 @@ from app.config import settings
 # Use DATABASE_URL from settings directly
 DATABASE_URL = settings.DATABASE_URL
 # Fix Heroku "postgres://" legacy protocol usage for SQLAlchemy 1.4+
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     
 print(f"🔌 Database FULL PATH: {DATABASE_URL}")
