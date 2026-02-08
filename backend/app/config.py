@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     ADMIN_EMAILS: List[str] = ["admin@epochly.com", "ish@epochly.com"]
     
     # Storage
-    NFS_MOUNT_PATH: str = "/mnt/home-gpu-cloud"
+    NFS_MOUNT_PATH: str = os.getenv("NFS_MOUNT_PATH", "/tmp/epochly-storage")
     MAX_UPLOAD_SIZE_MB: int = 500
 
     # Payment (Wompi)

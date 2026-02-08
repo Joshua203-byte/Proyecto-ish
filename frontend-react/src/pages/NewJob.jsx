@@ -84,10 +84,10 @@ export default function NewJob() {
                                 </div>
                                 <div className="min-w-0">
                                     <div className="font-medium text-primary truncate">
-                                        {script ? script.name : "Select Python Script"}
+                                        {script ? script.name : "Select Script"}
                                     </div>
                                     <div className="text-xs text-secondary">
-                                        {script ? "Ready to upload" : "Required (.py)"}
+                                        {script ? "Ready to upload" : "Required (.py or .ipynb)"}
                                     </div>
                                 </div>
                             </label>
