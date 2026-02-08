@@ -103,50 +103,64 @@ from app.config import settings
 
 @router.post("/upload")
 async def upload_ad_image(file: UploadFile = File(...)):
-    """Upload an image file for an ad. Optimizes for mobile."""
+    """Upload an image/video file for an ad to Firebase Storage."""
     try:
-        # Create uploads dir if not exists (backend/app/uploads)
-        upload_dir = os.path.join(os.getcwd(), "app", "uploads")
-        os.makedirs(upload_dir, exist_ok=True)
+        from app.services.firebase_service import FirebaseService
+        firebase = FirebaseService()
         
         # Clean filename
+        import uuid
+        ext = os.path.splitext(file.filename)[1]
         safe_filename = file.filename.replace(" ", "_").lower()
+        if not ext:
+             ext = ".jpg" # Default behavior
+             
+        # Generate unique path: ads/{uuid}_{filename}
+        file_uuid = str(uuid.uuid4())[:8]
+        destination_path = f"ads/{file_uuid}_{safe_filename}"
         
         content = await file.read()
         
-        # Check if video (bypass PIL)
+        # Check if video (bypass processing)
         if file.content_type.startswith("video/") or safe_filename.endswith((".mp4", ".mov", ".webm", ".avi")):
-            print(f"DEBUG: Processing Video: {safe_filename}")
-            file_path = os.path.join(upload_dir, safe_filename)
-            with open(file_path, "wb") as f:
-                f.write(content)
-            return {"url": f"/uploads/{safe_filename}"}
+            print(f"DEBUG: Uploading Video to Firebase: {destination_path}")
+            # Reset file pointer for upload
+            file.file.seek(0)
+            public_url = firebase.upload_file(file.file, destination_path, content_type=file.content_type)
+            return {"url": public_url}
 
-        # Force .jpg extension for images
-        safe_filename = os.path.splitext(safe_filename)[0] + ".jpg"
-        file_path = os.path.join(upload_dir, safe_filename)
-        
-        # Run image processing
-        image = Image.open(io.BytesIO(content))
-        
-        # Fix orientation
-        image = ImageOps.exif_transpose(image)
-        
-        # Ensure RGB
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-            
-        # Optimize size (max 1920px)
-        if image.width > 1920 or image.height > 1920:
-            image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
-            
-        # Save as JPEG (Quality 85 is good balance)
-        image.save(file_path, "JPEG", quality=85)
-            
-        # Return full URL
-        file_url = f"/uploads/{safe_filename}"
-        
-        return {"url": file_url}
+        # Process Image (Optimize before upload)
+        # Force .jpg extension for images if not present
+        if not ext in [".jpg", ".jpeg", ".png", ".webp"]:
+             destination_path += ".jpg"
+             
+        try:
+             image = Image.open(io.BytesIO(content))
+             image = ImageOps.exif_transpose(image)
+             if image.mode != "RGB":
+                 image = image.convert("RGB")
+             
+             # Optimize size (max 1920px)
+             if image.width > 1920 or image.height > 1920:
+                 image.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+             
+             # Save to buffer
+             buffer = io.BytesIO()
+             image.save(buffer, "JPEG", quality=85)
+             buffer.seek(0)
+             
+             # Upload to Firebase
+             print(f"DEBUG: Uploading Image to Firebase: {destination_path}")
+             public_url = firebase.upload_file(buffer, destination_path, content_type="image/jpeg")
+             
+             return {"url": public_url}
+             
+        except Exception as img_err:
+             print(f"⚠️ Image processing failed, uploading original: {img_err}")
+             file.file.seek(0)
+             public_url = firebase.upload_file(file.file, destination_path, content_type=file.content_type)
+             return {"url": public_url}
+
     except Exception as e:
         print(f"Upload error: {e}")
-        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Firebase upload failed: {str(e)}")

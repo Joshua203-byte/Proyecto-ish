@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # Storage
     NFS_MOUNT_PATH: str = os.getenv("NFS_MOUNT_PATH", "/tmp/epochly-storage")
     MAX_UPLOAD_SIZE_MB: int = 500
+    
+    # Firebase Storage
+    FIREBASE_STORAGE_BUCKET: str = "adds-78e7d.firebasestorage.app" 
+    FIREBASE_CREDENTIALS_JSON: str =  os.getenv("FIREBASE_CREDENTIALS_JSON", "")
 
     # Payment (Wompi)
     WOMPI_SV_APP_ID: str = ""

@@ -25,6 +25,10 @@ async def lifespan(app: FastAPI):
     from app.database import init_db
     init_db()
     
+    # Initialize Firebase
+    from app.services.firebase_service import FirebaseService
+    FirebaseService.initialize()
+    
     # Start WebSocket pub/sub listener (ignore Redis errors for local dev)
     try:
         pubsub_task = asyncio.create_task(manager.start_pubsub_listener())
