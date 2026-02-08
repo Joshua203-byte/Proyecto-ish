@@ -67,6 +67,37 @@ class StorageService:
             os.remove(temp_path)
             
             return str(data_dir.relative_to(self.nfs_path))
+            return str(data_dir.relative_to(self.nfs_path))
+        
+        elif filename.endswith(('.tar.gz', '.tgz', '.tar')):
+            # Handle Tar files
+            import tarfile
+            temp_path = input_dir / filename
+            
+            async with aiofiles.open(temp_path, 'wb') as f:
+                content = file.read()
+                if len(content) > self.max_upload_size:
+                    raise ValueError(
+                        f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB"
+                    )
+                await f.write(content)
+            
+            # Extract
+            try:
+                with tarfile.open(temp_path, 'r:*') as tar_ref:
+                    tar_ref.extractall(data_dir)
+            except Exception as e:
+                # Cleanup and re-raise
+                if temp_path.exists():
+                    os.remove(temp_path)
+                raise ValueError(f"Failed to extract tar archive: {e}")
+            
+            # Remove temp archive
+            if temp_path.exists():
+                os.remove(temp_path)
+            
+            return str(data_dir.relative_to(self.nfs_path))
+
         else:
             # Save file directly
             file_path = data_dir / filename
