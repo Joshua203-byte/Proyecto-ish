@@ -1,79 +1,69 @@
 """
-Simple test script for Epochly.
-Prints system info and a simple calculation.
+Test Script for Epochly GPU Jobs
+This script loads a CSV from the dataset and does basic ML training.
 """
-import sys
-import platform
-import time
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 import os
 
-print("=" * 50)
-print("EPOCHLY TEST SCRIPT - SUCCESS!")
-print("=" * 50)
-print()
+print("🚀 Starting Epochly Test Job...")
+print(f"Python version: {os.sys.version}")
 
-# System info
-print("📊 System Information:")
-print(f"  - Python version: {sys.version}")
-print(f"  - Platform: {platform.platform()}")
-print(f"  - Architecture: {platform.machine()}")
-print()
+# Load dataset from the data folder
+DATA_PATH = "data/sample_data.csv"
 
-# Check if GPU is available
-try:
-    import torch
-    if torch.cuda.is_available():
-        print("🚀 GPU Information:")
-        print(f"  - GPU Count: {torch.cuda.device_count()}")
-        for i in range(torch.cuda.device_count()):
-            print(f"  - GPU {i}: {torch.cuda.get_device_name(i)}")
-            props = torch.cuda.get_device_properties(i)
-            print(f"    Memory: {props.total_memory / 1024**3:.1f} GB")
-    else:
-        print("⚠️  CUDA not available")
-except ImportError:
-    print("⚠️  PyTorch not installed")
+if os.path.exists(DATA_PATH):
+    print(f"✅ Found dataset at {DATA_PATH}")
+    df = pd.read_csv(DATA_PATH)
+    print(f"📊 Dataset shape: {df.shape}")
+    print(f"📋 Columns: {list(df.columns)}")
+    
+    # Simple ML example
+    X = df[['feature_1', 'feature_2', 'feature_3']]
+    y = df['target']
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    print("🤖 Training RandomForest model...")
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions)
+    
+    print(f"✅ Model trained successfully!")
+    print(f"📈 Accuracy: {accuracy:.2%}")
+    
+    # Save results
+    os.makedirs("output", exist_ok=True)
+    results = pd.DataFrame({
+        'actual': y_test,
+        'predicted': predictions
+    })
+    results.to_csv("output/predictions.csv", index=False)
+    print("💾 Results saved to output/predictions.csv")
+    
+else:
+    print(f"⚠️ No dataset found at {DATA_PATH}")
+    print("Running without dataset - generating synthetic data...")
+    
+    # Generate synthetic data
+    np.random.seed(42)
+    X = np.random.randn(1000, 3)
+    y = (X[:, 0] + X[:, 1] > 0).astype(int)
+    
+    print(f"📊 Generated synthetic data: {X.shape}")
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    accuracy = accuracy_score(y_test, model.predict(X_test))
+    print(f"✅ Model trained on synthetic data!")
+    print(f"📈 Accuracy: {accuracy:.2%}")
 
-print()
-
-# Simple calculation
-print("🧮 Running simple test...")
-result = sum(range(1000000))
-print(f"  Sum of 0 to 999999 = {result}")
-
-# Sleep to simulate work
-print()
-print("⏳ Simulating work (5 seconds)...")
-for i in range(5):
-    print(f"  Working... {i+1}/5")
-    time.sleep(1)
-
-print()
-print("✅ TEST COMPLETED SUCCESSFULLY!")
-print("=" * 50)
-
-# ========================================
-# GENERATE OUTPUT FILES FOR DOWNLOAD TEST
-# ========================================
-import json
-import os
-
-output_dir = "/workspace/output"
-os.makedirs(output_dir, exist_ok=True)
-
-# Create results JSON
-results = {
-    "status": "success",
-    "python_version": sys.version,
-    "platform": platform.platform(),
-    "architecture": platform.machine(),
-    "calculation_result": result,
-    "message": "Job completed successfully on Epochly!"
-}
-
-results_file = os.path.join(output_dir, "results.json")
-with open(results_file, "w") as f:
-    json.dump(results, f, indent=2)
-
-print(f"📁 Results saved to: {results_file}")
-
+print("\n🎉 Job completed successfully!")
