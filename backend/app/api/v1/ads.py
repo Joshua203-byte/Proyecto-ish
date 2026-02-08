@@ -10,19 +10,23 @@ router = APIRouter(prefix="/ads", tags=["Ads"])
 @router.get("/", response_model=List[AdRead])
 def get_ads(x_admin_key: str = Header(None), db: Session = Depends(get_db)):
     """Get ads. Admins see all; public sees only active."""
+    print(f"DEBUG: get_ads called. Key: {x_admin_key}")
     query = db.query(Ad)
     if x_admin_key != "batman":
         query = query.filter(Ad.is_active == True)
-    return query.all()
+    results = query.all()
+    print(f"DEBUG: Returning {len(results)} ads from DB")
+    return results
 
 @router.post("/", response_model=AdRead, status_code=status.HTTP_201_CREATED)
 def create_ad(ad: AdCreate, db: Session = Depends(get_db)):
     """Create a new ad."""
+    print(f"DEBUG: create_ad called. Title: {ad.title}, URL: {ad.image_url}")
     new_ad = Ad(**ad.dict())
     db.add(new_ad)
     db.commit()
     db.refresh(new_ad)
-    db.refresh(new_ad)
+    print(f"DEBUG: Ad created successfully. ID: {new_ad.id}")
     return new_ad
 
 from fastapi import Header
