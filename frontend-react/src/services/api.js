@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 const api = axios.create({
     // Use env var for Vercel, fallback to relative for local/docker
     baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-    timeout: 10000, // 10 seconds timeout
+    timeout: 60000, // 60 seconds timeout for file uploads
     headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
