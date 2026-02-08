@@ -117,7 +117,12 @@ if os.path.exists(react_dist_path):
         if os.path.isfile(file_path):
             return FileResponse(file_path)
             
-        return FileResponse(os.path.join(react_dist_path, "index.html"))
+        # Serve index.html with NO CACHE to ensure updates propagate immediately
+        response = FileResponse(os.path.join(react_dist_path, "index.html"))
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
 
 # reload trigger
 # Force Deploy v37
