@@ -12,11 +12,19 @@ broker_use_ssl = None
 backend_use_ssl = None
 
 if redis_url.startswith("rediss://"):
+    # Create SSL context for Heroku Redis
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+    
     broker_use_ssl = {
-        'ssl_cert_reqs': ssl.CERT_NONE
+        'ssl_cert_reqs': ssl.CERT_NONE,
+        'ssl_context': ssl_context,
     }
     backend_use_ssl = {
-        'ssl_cert_reqs': ssl.CERT_NONE
+        'ssl_cert_reqs': ssl.CERT_NONE,
+        'ssl_context': ssl_context,
     }
 
 celery_app = Celery(
