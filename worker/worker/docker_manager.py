@@ -128,9 +128,27 @@ import subprocess, sys, ast, importlib.util, os
 script_name = os.environ.get('SCRIPT_NAME', 'train.py')
 script_path = f'/workspace/input/{script_name}'
 
+# For .ipynb files, extract Python code first
+if script_name.endswith('.ipynb'):
+    import json
+    try:
+        with open(script_path, 'r') as f:
+            notebook = json.load(f)
+        code_cells = [cell['source'] for cell in notebook.get('cells', []) if cell.get('cell_type') == 'code']
+        source_code = '\\n'.join([''.join(cell) for cell in code_cells])
+    except Exception as e:
+        print(f'Warning: Could not parse notebook: {e}')
+        sys.exit(0)
+else:
+    try:
+        with open(script_path, 'r') as f:
+            source_code = f.read()
+    except Exception as e:
+        print(f'Warning: Could not read script: {e}')
+        sys.exit(0)
+
 try:
-    with open(script_path, 'r') as f:
-        tree = ast.parse(f.read())
+    tree = ast.parse(source_code)
 except Exception as e:
     print(f'Warning: Could not parse script: {e}')
     sys.exit(0)
@@ -186,7 +204,17 @@ else:
 # Step 2: Run the user's script
 echo "[2/2] Running script: $SCRIPT_NAME $LAUNCH_ARGS"
 echo "=========================================="
-exec python3 "/workspace/input/${SCRIPT_NAME}" ${LAUNCH_ARGS}
+
+# Check if it's a notebook file
+if [[ "$SCRIPT_NAME" == *.ipynb ]]; then
+    echo "Detected Jupyter notebook, converting to Python..."
+    # Install jupyter if not present
+    pip install -q nbconvert ipykernel 2>/dev/null || true
+    # Convert notebook to Python and execute
+    jupyter nbconvert --to script "/workspace/input/${SCRIPT_NAME}" --stdout 2>/dev/null | python3
+else
+    exec python3 "/workspace/input/${SCRIPT_NAME}" ${LAUNCH_ARGS}
+fi
 '''
         
         container = self.client.containers.run(
