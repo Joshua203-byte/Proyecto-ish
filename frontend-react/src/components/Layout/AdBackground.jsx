@@ -130,7 +130,7 @@ export default function AdBackground() {
                         <VideoPlayer
                             src={getAdSrc(currentAd)}
                             onEnded={handleVideoEnded}
-                            shouldLoop={currentAd.duration_seconds < 15 || isSingleAd}
+                            shouldLoop={isSingleAd}
                             onLoadSuccess={() => setImageLoaded(true)}
                             onLoadError={() => setImageLoaded(false)}
                         />
