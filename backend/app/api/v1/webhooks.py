@@ -70,3 +70,51 @@ def billing_heartbeat(
         current_balance=balance,
         message=message
     )
+
+
+@router.get("/download-files/{job_id}")
+def download_job_files(
+    job_id: str,
+    worker_secret: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Webhook for worker to download job input files.
+    
+    Returns the files as a zip archive containing all input files.
+    Worker should extract this to its local input directory before execution.
+    """
+    from fastapi.responses import FileResponse
+    from pathlib import Path
+    import zipfile
+    import tempfile
+    from app.config import settings
+    
+    # Verify worker authentication
+    verify_worker(worker_secret)
+    
+    # Get job info
+    job_service = JobService(db)
+    job = job_service.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Build path to job input directory
+    input_path = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "input"
+    
+    if not input_path.exists():
+        raise HTTPException(status_code=404, detail="Job input files not found")
+    
+    # Create a temporary zip file
+    temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+    with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file_path in input_path.iterdir():
+            if file_path.is_file():
+                zf.write(file_path, file_path.name)
+    
+    return FileResponse(
+        temp_zip.name,
+        media_type="application/zip",
+        filename=f"job-{job_id}-input.zip"
+    )
+

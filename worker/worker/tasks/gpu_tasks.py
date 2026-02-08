@@ -108,6 +108,12 @@ def execute_gpu_job(
         )
         
         # ═══════════════════════════════════════════
+        # PHASE 1.5: Download Job Files from Backend
+        # ═══════════════════════════════════════════
+        logger.info(f"Downloading job files for {job_id}")
+        _download_job_files(job_id)
+        
+        # ═══════════════════════════════════════════
         # PHASE 2: Launch Container
         # ═══════════════════════════════════════════
         container_id = self.docker_manager.run_job(config, script_name, launch_args)
@@ -225,7 +231,7 @@ def _update_job_status(
     try:
         with httpx.Client(timeout=10) as client:
             response = client.post(
-                f"{settings.BACKEND_URL}/api/v1/webhooks/job-status",
+                f"{settings.BACKEND_URL}/webhooks/job-status",
                 json={
                     "job_id": job_id,
                     "status": status,
@@ -251,7 +257,7 @@ def _billing_heartbeat(job_id: str, runtime_minutes: int) -> bool:
     try:
         with httpx.Client(timeout=10) as client:
             response = client.post(
-                f"{settings.BACKEND_URL}/api/v1/webhooks/billing-heartbeat",
+                f"{settings.BACKEND_URL}/webhooks/billing-heartbeat",
                 json={
                     "job_id": job_id,
                     "runtime_minutes": runtime_minutes,
@@ -284,3 +290,44 @@ def _save_logs(job_id: str, logs: str) -> None:
         logger.info(f"Logs saved to {log_file}")
     except Exception as e:
         logger.error(f"Error saving logs: {e}")
+
+
+def _download_job_files(job_id: str) -> None:
+    """
+    Download job input files from backend.
+    
+    The script files are stored on Heroku, but we need them locally
+    on the DGX to mount into the Docker container.
+    """
+    import zipfile
+    import io
+    
+    try:
+        job_input_path = Path(settings.NFS_MOUNT_PATH) / "jobs" / job_id / "input"
+        job_input_path.mkdir(parents=True, exist_ok=True)
+        
+        # Download files from backend
+        download_url = f"{settings.BACKEND_URL}/webhooks/download-files/{job_id}"
+        
+        with httpx.Client(timeout=60) as client:
+            response = client.get(
+                download_url,
+                params={"worker_secret": settings.WORKER_SECRET}
+            )
+            response.raise_for_status()
+            
+            # Extract zip content
+            zip_data = io.BytesIO(response.content)
+            with zipfile.ZipFile(zip_data, 'r') as zf:
+                zf.extractall(job_input_path)
+            
+            logger.info(f"Job files downloaded to {job_input_path}")
+            
+            # List downloaded files
+            for f in job_input_path.iterdir():
+                logger.info(f"  - {f.name}")
+                
+    except Exception as e:
+        logger.error(f"Error downloading job files: {e}")
+        raise
+
