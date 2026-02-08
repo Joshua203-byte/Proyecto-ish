@@ -8,6 +8,7 @@ import AdBackground from '../components/Layout/AdBackground';
 export default function NewJob() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [script, setScript] = useState(null);
     const [dataset, setDataset] = useState(null);
     const [formData, setFormData] = useState({
@@ -33,26 +34,61 @@ export default function NewJob() {
         }
 
         setLoading(true);
+        setUploadProgress(0);
+
         const data = new FormData();
         data.append('script_file', script);
         if (dataset) data.append('dataset_file', dataset);
-        data.append('email', formData.email); // Mandatory
+        data.append('email', formData.email);
         data.append('memory', formData.memory);
         data.append('timeout', formData.timeout);
         data.append('launch_command', formData.launchCommand || '');
 
         try {
-            await api.post('/jobs/', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            // Use XMLHttpRequest for progress tracking
+            const token = localStorage.getItem('token');
+            const baseURL = api.defaults.baseURL || '';
+
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${baseURL}/jobs/`);
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                xhr.timeout = 600000; // 10 minutes timeout
+
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        setUploadProgress(percent);
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        try {
+                            const error = JSON.parse(xhr.responseText);
+                            reject(new Error(error.detail || 'Upload failed'));
+                        } catch {
+                            reject(new Error('Upload failed'));
+                        }
+                    }
+                };
+
+                xhr.onerror = () => reject(new Error('Network error'));
+                xhr.ontimeout = () => reject(new Error('Upload timed out (10 min limit)'));
+                xhr.send(data);
             });
+
             toast.success('Job started successfully');
             navigate('/dashboard/jobs');
         } catch (error) {
             console.error("Job submit error:", error);
-            const msg = error.response?.data?.detail || "Failed to create job.";
+            const msg = error.message || "Failed to create job.";
             toast.error(msg);
         } finally {
             setLoading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -146,16 +182,35 @@ export default function NewJob() {
                         </div>
 
                         {/* 4. Submit */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`
-                                w-full py-4 rounded-xl font-bold text-lg shadow-lg mt-2 transition-transform hover:-translate-y-0.5
-                                ${loading ? 'bg-neutral-200 text-neutral-400' : 'bg-primary text-white hover:bg-primary/90'}
-                            `}
-                        >
-                            {loading ? 'Launching...' : 'Run Job'}
-                        </button>
+                        {loading ? (
+                            <div className="w-full mt-2">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-medium text-primary">
+                                        {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
+                                    </span>
+                                    <span className="text-sm font-bold text-accent">{uploadProgress}%</span>
+                                </div>
+                                <div className="w-full bg-neutral-200 rounded-full h-4 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-accent to-primary rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
+                                </div>
+                                <p className="text-xs text-secondary text-center mt-2">
+                                    {uploadProgress < 100
+                                        ? 'Please wait, uploading files...'
+                                        : 'Upload complete, starting job...'}
+                                </p>
+                            </div>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-4 rounded-xl font-bold text-lg shadow-lg mt-2 transition-transform hover:-translate-y-0.5 bg-primary text-white hover:bg-primary/90"
+                            >
+                                Run Job
+                            </button>
+                        )}
                     </form>
                 </div>
             </div>
