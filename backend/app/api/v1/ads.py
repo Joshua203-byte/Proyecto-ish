@@ -111,12 +111,21 @@ async def upload_ad_image(file: UploadFile = File(...)):
         
         # Clean filename
         safe_filename = file.filename.replace(" ", "_").lower()
-        # Force .jpg extension for maximum compatibility
+        
+        content = await file.read()
+        
+        # Check if video (bypass PIL)
+        if file.content_type.startswith("video/") or safe_filename.endswith((".mp4", ".mov", ".webm", ".avi")):
+            print(f"DEBUG: Processing Video: {safe_filename}")
+            file_path = os.path.join(upload_dir, safe_filename)
+            with open(file_path, "wb") as f:
+                f.write(content)
+            return {"url": f"/uploads/{safe_filename}"}
+
+        # Force .jpg extension for images
         safe_filename = os.path.splitext(safe_filename)[0] + ".jpg"
         file_path = os.path.join(upload_dir, safe_filename)
         
-        # Process image
-        content = await file.read()
         # Run image processing
         image = Image.open(io.BytesIO(content))
         
