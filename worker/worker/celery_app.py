@@ -41,6 +41,18 @@ celery_app.conf.update(
     # Task acknowledgement
     task_acks_late=True,
     task_reject_on_worker_lost=True,
+    # Connection retry settings for Heroku Redis
+    broker_connection_retry_on_startup=True,
+    broker_connection_retry=True,
+    broker_connection_max_retries=10,
+    broker_connection_timeout=30,
+    # Redis socket options for stability
+    broker_transport_options={
+        'socket_keepalive': True,
+        'socket_keepalive_options': {},
+        'health_check_interval': 10,
+        'retry_on_timeout': True,
+    },
 )
 
 # Import tasks to register them
