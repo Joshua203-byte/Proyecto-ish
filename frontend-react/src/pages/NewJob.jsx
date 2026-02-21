@@ -132,7 +132,6 @@ export default function NewJob() {
                 {/* Left: Text (Hidden on small screens) */}
                 <div className="hidden lg:block text-primary max-w-sm">
                     <h1 className="text-6xl font-serif font-medium mb-3 leading-none">New Job</h1>
-                    <p className="text-xl text-secondary">Deploy specific code to DGX Spark.</p>
                 </div>
 
                 {/* Right: Ultra Compact Card */}
@@ -260,12 +259,12 @@ export default function NewJob() {
                                 className="w-full flex items-center justify-between px-4 py-2 bg-neutral-50 hover:bg-neutral-100 transition-colors"
                             >
                                 <span className="text-xs font-bold uppercase tracking-wider text-secondary">
-                                    📋 Instructions & Requirements
+                                    Instructions & Requirements
                                 </span>
                                 <span className="text-secondary text-lg">{showInstructions ? '−' : '+'}</span>
                             </button>
                             {showInstructions && (
-                                <div className="px-4 py-3 text-xs text-secondary space-y-2 bg-white">
+                                <div className="px-4 py-3 text-xs text-secondary space-y-2 bg-white break-words" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                                     <p className="font-semibold text-primary">File Paths:</p>
                                     <ul className="list-disc list-inside space-y-1 ml-1">
                                         <li><code className="bg-neutral-100 px-1 rounded">/workspace/input/</code> — Your script & dataset</li>
