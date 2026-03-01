@@ -77,7 +77,7 @@ export default function NewJob() {
 
         try {
             // Use XMLHttpRequest for progress tracking
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const baseURL = api.defaults.baseURL || '';
 
             await new Promise((resolve, reject) => {

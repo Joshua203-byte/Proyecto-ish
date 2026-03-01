@@ -1,8 +1,0 @@
-{
-  "test": "ResNet-50 Training",
-  "device": "cuda",
-  "epochs": 5,
-  "batch_size": 64,
-  "total_time_seconds": 142.08,
-  "throughput_images_per_second": 351.9
-}

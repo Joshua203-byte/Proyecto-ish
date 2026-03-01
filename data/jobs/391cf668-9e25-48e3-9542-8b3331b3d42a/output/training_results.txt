@@ -1,4 +1,0 @@
-Training Complete!
-Final Loss: 0.056110
-Accuracy: 0.9208
-Training Time: ~60 seconds

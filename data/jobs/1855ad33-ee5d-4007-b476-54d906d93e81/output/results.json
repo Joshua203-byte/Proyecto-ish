@@ -1,9 +1,0 @@
-{
-  "test": "Stable Diffusion Generation",
-  "prompt": "A beautiful sunset over mountains, digital art, highly detailed",
-  "num_images": 4,
-  "steps": 30,
-  "device": "cuda",
-  "avg_time_per_image": 5.69,
-  "total_time": 22.78
-}

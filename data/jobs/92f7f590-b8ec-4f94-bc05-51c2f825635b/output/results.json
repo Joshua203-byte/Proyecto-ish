@@ -1,7 +1,0 @@
-{
-  "test": "CIFAR-10 CNN Training",
-  "best_accuracy": 84.27,
-  "epochs": 10,
-  "device": "cuda",
-  "total_time_seconds": 73.17
-}
