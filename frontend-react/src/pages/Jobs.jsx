@@ -366,31 +366,11 @@ export default function Jobs() {
 
 
 function JobDuration({ job }) {
-    const [duration, setDuration] = useState(job.runtime_seconds || 0);
+    const [duration, setDuration] = useState(() => computeDuration(job));
 
     useEffect(() => {
-        // Update immediately on mount
         const updateDuration = () => {
-            if (job.status === 'running' && job.started_at) {
-                // Determine start time safely
-                let start;
-                const timestamp = job.started_at;
-
-                // If string doesn't have Z or offset, assume UTC
-                if (typeof timestamp === 'string' && !timestamp.endsWith('Z') && !timestamp.includes('+')) {
-                    start = new Date(timestamp + 'Z').getTime();
-                } else {
-                    start = new Date(timestamp).getTime();
-                }
-
-                // Server time is likely UTC, Client is Local.
-                // We use Date.now() (UTC-based epoch) - start (UTC-based epoch)
-                const now = Date.now();
-                const diff = Math.floor((now - start) / 1000);
-                setDuration(Math.max(0, diff));
-            } else {
-                setDuration(job.runtime_seconds || 0);
-            }
+            setDuration(computeDuration(job));
         };
 
         updateDuration();
@@ -401,9 +381,47 @@ function JobDuration({ job }) {
         }
 
         return () => clearInterval(interval);
-    }, [job.status, job.started_at, job.runtime_seconds]);
+    }, [job.status, job.started_at, job.completed_at, job.runtime_seconds]);
 
     return <p className="text-primary font-mono text-lg">{formatDuration(duration)}</p>;
+}
+
+function computeDuration(job) {
+    // If runtime_seconds is set and > 0, use it
+    if (job.runtime_seconds && job.runtime_seconds > 0) {
+        return job.runtime_seconds;
+    }
+
+    if (!job.started_at) return 0;
+
+    // Parse start time (assume UTC if no timezone info)
+    let start;
+    const startTs = job.started_at;
+    if (typeof startTs === 'string' && !startTs.endsWith('Z') && !startTs.includes('+')) {
+        start = new Date(startTs + 'Z').getTime();
+    } else {
+        start = new Date(startTs).getTime();
+    }
+
+    // If job is completed/failed, calculate from started_at to completed_at
+    if (['completed', 'failed', 'cancelled'].includes(job.status) && job.completed_at) {
+        let end;
+        const endTs = job.completed_at;
+        if (typeof endTs === 'string' && !endTs.endsWith('Z') && !endTs.includes('+')) {
+            end = new Date(endTs + 'Z').getTime();
+        } else {
+            end = new Date(endTs).getTime();
+        }
+        return Math.max(0, Math.floor((end - start) / 1000));
+    }
+
+    // If still running, calculate from started_at to now
+    if (job.status === 'running') {
+        const now = Date.now();
+        return Math.max(0, Math.floor((now - start) / 1000));
+    }
+
+    return 0;
 }
 
 function StatusIcon({ status }) {

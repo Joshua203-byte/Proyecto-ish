@@ -296,6 +296,65 @@ def download_input_files(
     )
 
 
+@router.post("/{job_id}/upload-logs/")
+def upload_logs(
+    job_id: UUID,
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    """Upload logs from worker to backend storage."""
+    from app.config import settings
+    
+    if payload.get("worker_secret") != settings.WORKER_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid worker secret")
+    
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    storage = StorageService()
+    log_dir = storage.nfs_path / "jobs" / str(job_id) / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "output.log"
+    
+    with open(log_file, "w") as f:
+        f.write(payload.get("logs", ""))
+    
+    return {"status": "ok"}
+
+
+@router.post("/{job_id}/upload-outputs/")
+def upload_outputs(
+    job_id: UUID,
+    file: UploadFile = File(...),
+    worker_secret: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Upload output files from worker to backend storage."""
+    from app.config import settings
+    
+    if worker_secret != settings.WORKER_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid worker secret")
+    
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    storage = StorageService()
+    output_dir = storage.nfs_path / "jobs" / str(job_id) / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Extract zip contents into output directory
+    import zipfile
+    import io
+    
+    content = file.file.read()
+    with zipfile.ZipFile(io.BytesIO(content), 'r') as zf:
+        zf.extractall(output_dir)
+    
+    return {"status": "ok"}
+
+
 @router.get("/{job_id}/logs/")
 def get_job_logs(
     job_id: UUID,

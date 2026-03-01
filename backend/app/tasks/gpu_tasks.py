@@ -64,6 +64,60 @@ def download_input_files(job_id: str, storage: StorageService):
         print(f"❌ Error downloading input files: {e}")
         return False
 
+def upload_logs_to_backend(job_id: str, log_path: Path):
+    """Upload the log file to the Heroku backend so it can serve logs."""
+    url = f"{BACKEND_URL}/api/v1/jobs/{job_id}/upload-logs/"
+    try:
+        with open(log_path, "r") as f:
+            log_content = f.read()
+        
+        resp = requests.post(url, json={
+            "worker_secret": WORKER_SECRET,
+            "logs": log_content
+        }, timeout=30)
+        
+        if resp.status_code == 200:
+            print(f"✅ Logs uploaded to backend for job {job_id}")
+        else:
+            print(f"⚠️ Failed to upload logs: HTTP {resp.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error uploading logs: {e}")
+
+def upload_outputs_to_backend(job_id: str, storage: StorageService):
+    """Upload output files to the Heroku backend so they can be downloaded."""
+    output_dir = storage.nfs_path / "jobs" / str(job_id) / "output"
+    
+    if not output_dir.exists() or not any(output_dir.iterdir()):
+        print(f"📁 No output files to upload for job {job_id}")
+        return
+    
+    url = f"{BACKEND_URL}/api/v1/jobs/{job_id}/upload-outputs/"
+    
+    try:
+        # Create a zip of outputs
+        import tempfile
+        zip_path = tempfile.mktemp(suffix=".zip")
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file_path in output_dir.rglob("*"):
+                if file_path.is_file():
+                    zf.write(file_path, file_path.relative_to(output_dir))
+        
+        with open(zip_path, "rb") as f:
+            resp = requests.post(url, 
+                files={"file": ("outputs.zip", f, "application/zip")},
+                data={"worker_secret": WORKER_SECRET},
+                timeout=300
+            )
+        
+        os.unlink(zip_path)
+        
+        if resp.status_code == 200:
+            print(f"✅ Outputs uploaded to backend for job {job_id}")
+        else:
+            print(f"⚠️ Failed to upload outputs: HTTP {resp.status_code}")
+    except Exception as e:
+        print(f"⚠️ Error uploading outputs: {e}")
+
 @celery_app.task(bind=True, name="worker.tasks.gpu_tasks.execute_gpu_job")
 def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: str, memory_limit: str, cpu_count: int, timeout_seconds: int, launch_args: str):
     """
@@ -72,6 +126,7 @@ def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: st
     db = SessionLocal()
     log_path = None
     job = None
+    start_time = time.time()
     try:
         job = db.query(Job).filter(Job.id == job_id).first()
         if not job:
@@ -146,20 +201,30 @@ def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: st
                 
         process.wait()
         
+        # Calculate runtime
+        runtime_seconds = int(time.time() - start_time)
+        
         if process.returncode == 0:
-            log("✅ Execution completed successfully.")
+            log(f"✅ Execution completed successfully in {runtime_seconds}s.")
         else:
-            log(f"⚠️ Process exited with code {process.returncode}")
+            log(f"⚠️ Process exited with code {process.returncode} after {runtime_seconds}s")
             raise Exception(f"Script failed with exit code {process.returncode}")
         
-        # 5. Success Completion
+        # 5. Success Completion - save runtime_seconds
         job.status = JobStatus.COMPLETED
         job.completed_at = func.now()
+        job.runtime_seconds = runtime_seconds
         db.commit()
+        
+        # 6. Upload logs and outputs to backend so Heroku can serve them
+        if log_path and log_path.exists():
+            upload_logs_to_backend(job_id, log_path)
+        upload_outputs_to_backend(job_id, storage)
         
         return "Completed"
 
     except Exception as e:
+        runtime_seconds = int(time.time() - start_time)
         print(f"🔥 Job failed: {e}")
         try:
             if log_path:
@@ -170,7 +235,15 @@ def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: st
             
         if job:
             job.status = JobStatus.FAILED
+            job.runtime_seconds = runtime_seconds
             db.commit()
+        
+        # Upload logs even on failure
+        try:
+            if log_path and log_path.exists():
+                upload_logs_to_backend(job_id, log_path)
+        except:
+            pass
         
         raise e
     finally:
