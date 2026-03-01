@@ -90,10 +90,11 @@ services:
     restart: always
     container_name: homegpu-worker
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-homegpu}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-homegpu}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL:-postgres://uedrt5h1nmumhh:p93e3c467e961339ae6f71ed7c136b0a39133d1c8da2242698dea65b58128daa9@c85cgnr0vdhse3.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dcmof09gpqa72v}
+      - REDIS_URL=${REDIS_URL:-rediss://default:AcQNAAIncDJlMjdhMDViOGNlN2U0YjFjYWQ1ZDYyM2E2YThiOGU0NHAyNTAxODk@engaged-stork-50189.upstash.io:6379}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - WORKER_SECRET=${WORKER_SECRET:-secret123}
+      - BACKEND_URL=${BACKEND_URL:-https://www.epochly.co}
       - NFS_MOUNT_PATH=/mnt/home-gpu-cloud
     volumes:
       - ./backend:/app

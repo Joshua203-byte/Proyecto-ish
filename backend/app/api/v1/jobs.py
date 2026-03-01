@@ -255,6 +255,47 @@ def delete_job(
         raise HTTPException(status_code=500, detail=f"Error al eliminar el trabajo: {str(e)}")
 
 
+@router.get("/{job_id}/download-input/")
+def download_input_files(
+    job_id: UUID,
+    worker_secret: str = None,
+    db: Session = Depends(get_db),
+):
+    """Download job input files (for worker use). Accepts worker_secret for auth."""
+    from app.config import settings
+    
+    # Allow worker access via secret
+    if worker_secret != settings.WORKER_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid worker secret")
+    
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    storage = StorageService()
+    input_dir = storage.nfs_path / "jobs" / str(job_id) / "input"
+    
+    if not input_dir.exists():
+        raise HTTPException(status_code=404, detail="Input directory not found")
+    
+    # Create a zip of the input directory
+    import zipfile
+    import io
+    import tempfile
+    
+    zip_path = tempfile.mktemp(suffix=".zip")
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for file_path in input_dir.rglob("*"):
+            if file_path.is_file():
+                zf.write(file_path, file_path.relative_to(input_dir))
+    
+    return FileResponse(
+        path=zip_path,
+        filename=f"job_{job_id}_input.zip",
+        media_type='application/zip'
+    )
+
+
 @router.get("/{job_id}/logs/")
 def get_job_logs(
     job_id: UUID,
