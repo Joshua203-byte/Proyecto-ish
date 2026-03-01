@@ -146,22 +146,34 @@ class StorageService:
         return self.nfs_path / "jobs" / str(job_id) / "output" / relative_path
 
     def create_results_archive(self, job_id: UUID) -> Path:
-        """Create a zip archive of the job output directory."""
+        """Create a zip archive of the job output directory (includes logs if no outputs)."""
         job_path = self.nfs_path / "jobs" / str(job_id)
         output_dir = job_path / "output"
+        logs_dir = job_path / "logs"
         zip_path = job_path / "results.zip"
         
-        # Determine if outputs exist
-        if not output_dir.exists() or not any(output_dir.iterdir()):
-             raise FileNotFoundError("No output files found to download.")
+        has_outputs = output_dir.exists() and any(output_dir.iterdir())
+        has_logs = logs_dir.exists() and any(logs_dir.iterdir())
+        
+        if not has_outputs and not has_logs:
+            raise FileNotFoundError("No output files found to download.")
 
         # Create zip file
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, _, files in os.walk(output_dir):
-                for file in files:
-                    file_path = Path(root) / file
-                    # Relative path inside zip
-                    arcname = file_path.relative_to(output_dir)
-                    zipf.write(file_path, arcname)
+            # Include output files
+            if has_outputs:
+                for root, _, files in os.walk(output_dir):
+                    for file in files:
+                        file_path = Path(root) / file
+                        arcname = Path("output") / file_path.relative_to(output_dir)
+                        zipf.write(file_path, arcname)
+            
+            # Always include logs
+            if has_logs:
+                for root, _, files in os.walk(logs_dir):
+                    for file in files:
+                        file_path = Path(root) / file
+                        arcname = Path("logs") / file_path.relative_to(logs_dir)
+                        zipf.write(file_path, arcname)
                     
         return zip_path

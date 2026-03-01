@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore", category=UserWarning, message=".*NVIDIA.*not c
 
 def main():
     print("=" * 60)
-    print("🚀 AI TRAINING SPEED BENCHMARK (Local CPU vs Epochly GPU)")
+    print("AI TRAINING SPEED BENCHMARK (Local CPU vs Epochly GPU)")
     print("=" * 60)
 
     # 1. Smart device selection - auto-detects if GPU actually works
@@ -119,17 +119,17 @@ def main():
     total_time = time.time() - total_start_time
     
     print("\n" + "=" * 60)
-    print("🎉 TRAINING COMPLETE!")
+    print("TRAINING COMPLETE!")
     print(f"Total time taken: {total_time:.2f} seconds")
     
     # Print dynamic message for the video ending
     if device.type == 'cpu':
-        print("\n💡 TIMELINE COMPARISON:")
+        print("\nTIMELINE COMPARISON:")
         print(f"It took {total_time:.2f}s on this local CPU.")
-        print("Now, run this exact same script on Epochly to see the magic! 🚀")
+        print("Now, run this exact same script on Epochly to see the magic!")
     else:
-        print("\n💡 TIMELINE COMPARISON:")
-        print(f"Wow! Only {total_time:.2f}s on Epochly GPU! 🔥")
+        print("\nTIMELINE COMPARISON:")
+        print(f"Only {total_time:.2f}s on Epochly GPU!")
         print("Compare this with the agonizing wait on a regular laptop CPU.")
     print("=" * 60)
 
