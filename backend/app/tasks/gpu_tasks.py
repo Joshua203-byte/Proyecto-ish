@@ -192,7 +192,24 @@ def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: st
             cwd=script_full_path.parent
         )
         
-        # Stream logs
+        # Stream logs with periodic uploads for real-time viewing
+        import threading
+        
+        upload_stop_event = threading.Event()
+        
+        def periodic_log_uploader():
+            """Upload logs to backend every 5 seconds."""
+            while not upload_stop_event.is_set():
+                upload_stop_event.wait(5)
+                if not upload_stop_event.is_set() and log_path.exists():
+                    try:
+                        upload_logs_to_backend(job_id, log_path)
+                    except:
+                        pass
+        
+        upload_thread = threading.Thread(target=periodic_log_uploader, daemon=True)
+        upload_thread.start()
+        
         with open(log_path, "a") as f:
             for line in process.stdout:
                 # Filter out NVIDIA container header noise
@@ -214,6 +231,10 @@ def execute_gpu_job(self, job_id: str, user_id: str, script_name: str, image: st
                     continue
                 f.write(line)
                 f.flush()
+        
+        # Stop periodic uploads
+        upload_stop_event.set()
+        upload_thread.join(timeout=2)
                 
         process.wait()
         

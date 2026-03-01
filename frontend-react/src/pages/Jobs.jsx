@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ export default function Jobs() {
     const [selectedJob, setSelectedJob] = useState(null);
     const [logs, setLogs] = useState('');
     const [fetchingLogs, setFetchingLogs] = useState(false);
+    const logContainerRef = useRef(null);
 
     // Confirmation Modal State
     const [confirmAction, setConfirmAction] = useState(null); // { type: 'cancel' | 'delete', job: jobObject }
@@ -21,6 +22,11 @@ export default function Jobs() {
                 const { data } = await api.get('/jobs/', { params: { _t: Date.now() } });
                 if (isMounted) {
                     setJobs(data);
+                    // Update selectedJob if it's open (to get latest status)
+                    if (selectedJob) {
+                        const updated = data.find(j => j.id === selectedJob.id);
+                        if (updated) setSelectedJob(updated);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch jobs", error);
@@ -29,12 +35,43 @@ export default function Jobs() {
             }
         };
         fetchJobs();
-        const interval = setInterval(fetchJobs, 10000);
+        const interval = setInterval(fetchJobs, 5000);
         return () => {
             isMounted = false;
             clearInterval(interval);
         };
-    }, []);
+    }, [selectedJob?.id]);
+
+    // Auto-poll logs when viewing a running job
+    useEffect(() => {
+        if (!selectedJob) return;
+
+        const fetchLogs = async () => {
+            try {
+                const { data } = await api.get(`/jobs/${selectedJob.id}/logs/`);
+                setLogs(data.logs || 'No logs available yet.');
+                // Auto-scroll to bottom
+                if (logContainerRef.current) {
+                    logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+                }
+            } catch (error) {
+                // Don't overwrite existing logs on error
+            }
+        };
+
+        fetchLogs();
+
+        // Poll every 3 seconds for running jobs, every 10s for others
+        const isRunning = ['running', 'pending', 'queued'].includes(selectedJob.status);
+        const pollInterval = isRunning ? 3000 : null;
+
+        let interval;
+        if (pollInterval) {
+            interval = setInterval(fetchLogs, pollInterval);
+        }
+
+        return () => { if (interval) clearInterval(interval); };
+    }, [selectedJob?.id, selectedJob?.status]);
 
     const viewLogs = async (job) => {
         setSelectedJob(job);
@@ -302,7 +339,7 @@ export default function Jobs() {
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-auto p-8 font-mono text-sm bg-white text-primary leading-relaxed whitespace-pre-wrap selection:bg-accent selection:text-white">
+                        <div ref={logContainerRef} className="flex-1 overflow-auto p-8 font-mono text-sm bg-white text-primary leading-relaxed whitespace-pre-wrap selection:bg-accent selection:text-white">
                             {fetchingLogs ? 'Loading...' : (logs || 'No logs available.')}
                         </div>
                     </div>

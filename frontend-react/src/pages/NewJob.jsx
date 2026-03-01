@@ -15,8 +15,8 @@ export default function NewJob() {
     const [datasetFiles, setDatasetFiles] = useState([]); // Changed to array
     const [formData, setFormData] = useState({
         email: '',
-        memory: '8g',
-        timeout: '3600',
+        memory: '128g',
+        timeout: '0',
         launchCommand: ''
     });
 
@@ -210,45 +210,17 @@ export default function NewJob() {
                             )}
                         </div>
 
-                        {/* 3. Settings Grid */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-[10px] uppercase font-bold text-secondary tracking-wider ml-1">Email (Required)</label>
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="name@example.com"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full bg-neutral-100 border-0 rounded-lg py-2 px-3 text-sm focus:ring-1 focus:ring-primary invalid:ring-red-500/50"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="text-[10px] uppercase font-bold text-secondary tracking-wider ml-1">RAM</label>
-                                    <select
-                                        value={formData.memory}
-                                        onChange={(e) => setFormData({ ...formData, memory: e.target.value })}
-                                        className="w-full bg-neutral-100 border-0 rounded-lg py-2 px-1 text-sm text-center font-medium"
-                                    >
-                                        <option value="8g">8GB</option>
-                                        <option value="24g">24GB</option>
-                                        <option value="80g">80GB</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] uppercase font-bold text-secondary tracking-wider ml-1">Time</label>
-                                    <select
-                                        value={formData.timeout}
-                                        onChange={(e) => setFormData({ ...formData, timeout: e.target.value })}
-                                        className="w-full bg-neutral-100 border-0 rounded-lg py-2 px-1 text-sm text-center font-medium"
-                                    >
-                                        <option value="1800">30m</option>
-                                        <option value="3600">1h</option>
-                                        <option value="14400">4h</option>
-                                    </select>
-                                </div>
-                            </div>
+                        {/* 3. Email */}
+                        <div>
+                            <label className="text-[10px] uppercase font-bold text-secondary tracking-wider ml-1">Email (Required)</label>
+                            <input
+                                type="email"
+                                required
+                                placeholder="name@example.com"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="w-full bg-neutral-100 border-0 rounded-lg py-2 px-3 text-sm focus:ring-1 focus:ring-primary invalid:ring-red-500/50"
+                            />
                         </div>
 
                         {/* 4. Instructions Collapsible */}
