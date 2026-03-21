@@ -21,6 +21,7 @@ app.use(
     createProxyMiddleware({
         target: BACKEND_URL,
         changeOrigin: true,
+        pathRewrite: (path, req) => req.originalUrl,
         // Forward the ngrok anti-abuse header so API calls succeed on free ngrok
         on: {
             proxyReq: (proxyReq, req, res) => {
