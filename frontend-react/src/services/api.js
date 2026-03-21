@@ -2,7 +2,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const api = axios.create({
-    // Use env var for Vercel/Heroku, fallback to relative for local/docker
+    // Use env var for Vercel/Heroku API URL, fallback to relative for local
     baseURL: import.meta.env.VITE_API_URL || '/api/v1',
     timeout: 60000, // 60 seconds timeout for file uploads
     headers: {
