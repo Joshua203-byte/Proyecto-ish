@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from '../components/Layout/Navbar';
-import Wallet from './Wallet';
+// PAYMENT DISABLED - uncomment to re-enable
+// import Wallet from './Wallet';
 import NewJob from './NewJob';
 import Jobs from './Jobs';
 import AdminAds from './AdminAds';
@@ -18,7 +19,8 @@ export default function Dashboard() {
                         <Route path="/jobs" element={<Jobs />} />
                         <Route path="/new-job" element={<NewJob />} />
                         <Route path="/new-job" element={<NewJob />} />
-                        <Route path="/wallet" element={<Wallet />} />
+                        {/* PAYMENT DISABLED - uncomment to re-enable */}
+                        {/* <Route path="/wallet" element={<Wallet />} /> */}
                         <Route path="/admin" element={<AdminAds />} />
                     </Routes>
                 </div>

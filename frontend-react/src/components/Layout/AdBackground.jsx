@@ -20,7 +20,7 @@ export default function AdBackground() {
                 id: "ad_def_1",
                 title: "Epochly Pilot",
                 image_url: imgPilot,
-                target_url: "/dashboard/wallet",
+                target_url: "/dashboard/new-job", // PAYMENT DISABLED - change back to "/dashboard/wallet" to re-enable
                 duration_seconds: 10,
                 is_local: true
             },
@@ -28,7 +28,7 @@ export default function AdBackground() {
                 id: "ad_def_2",
                 title: "Epochly Researcher",
                 image_url: imgResearcher,
-                target_url: "/dashboard/wallet",
+                target_url: "/dashboard/new-job", // PAYMENT DISABLED - change back to "/dashboard/wallet" to re-enable
                 duration_seconds: 10,
                 is_local: true
             },
@@ -36,7 +36,7 @@ export default function AdBackground() {
                 id: "ad_def_3",
                 title: "Epochly Lab",
                 image_url: imgLab,
-                target_url: "/dashboard/wallet",
+                target_url: "/dashboard/new-job", // PAYMENT DISABLED - change back to "/dashboard/wallet" to re-enable
                 duration_seconds: 10,
                 is_local: true
             }

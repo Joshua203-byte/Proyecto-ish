@@ -34,9 +34,11 @@ export default function Navbar() {
                 <NavLink to="/dashboard/jobs" className={navLinkClasses}>
                     Jobs
                 </NavLink>
+                {/* PAYMENT DISABLED - uncomment to re-enable
                 <NavLink to="/dashboard/wallet" className={navLinkClasses}>
                     Wallet
                 </NavLink>
+                */}
 
             </div>
 
