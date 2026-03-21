@@ -69,7 +69,12 @@ class Settings(BaseSettings):
     MAX_TIMEOUT_SECONDS: int = 604800  # 1 week
     
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://epochly-6cfe3bca2ff5.herokuapp.com"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000", 
+        "https://epochly-6cfe3bca2ff5.herokuapp.com",
+        "https://www.epochly.co",
+        "https://epochly.co"
+    ]
     
     class Config:
         env_file = ".env"
