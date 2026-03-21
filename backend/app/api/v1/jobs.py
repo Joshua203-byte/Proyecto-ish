@@ -51,32 +51,28 @@ async def create_job(
                 db.rollback()
                 # Continue execution even if email update fails
         
-        billing = BillingService(db)
-        
-        # Check minimum balance
-        print("🔍 [JOBS] Checking balance...")
-        if not billing.can_start_job(current_user.id):
-            print("❌ [JOBS] Insufficient balance")
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail=f"Insufficient balance. Minimum {settings.MINIMUM_BALANCE_TO_START} credits required."
-            )
-        
-        # Calculate initial cost (e.g. 15 mins reserve or just flat rate for start)
-        # For this version, we deduct a fixed amount or per-minute rate * estimated time.
-        # Let's debit for the full timeout duration upfront or a chunk.
-        # Simpler: Deduct 1 minute cost to start.
-        start_cost = Decimal(str(settings.CREDITS_PER_MINUTE)) * Decimal("5") # Charge 5 mins upfront
-        
-        try:
-             billing.debit_for_job(
-                wallet_id=current_user.wallet.id,
-                job_id=None, # Not created yet, will link later or update logic
-                amount=start_cost,
-                description=f"Job reservation (5 mins)" # Temporary description
-            )
-        except Exception as e:
-             raise HTTPException(status_code=402, detail=f"Payment failed: {str(e)}")
+        # PAYMENT DISABLED - uncomment to re-enable billing checks
+        # billing = BillingService(db)
+        #
+        # # Check minimum balance
+        # print("🔍 [JOBS] Checking balance...")
+        # if not billing.can_start_job(current_user.id):
+        #     print("❌ [JOBS] Insufficient balance")
+        #     raise HTTPException(
+        #         status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        #         detail=f"Insufficient balance. Minimum {settings.MINIMUM_BALANCE_TO_START} credits required."
+        #     )
+        #
+        # start_cost = Decimal(str(settings.CREDITS_PER_MINUTE)) * Decimal("5")
+        # try:
+        #      billing.debit_for_job(
+        #         wallet_id=current_user.wallet.id,
+        #         job_id=None,
+        #         amount=start_cost,
+        #         description=f"Job reservation (5 mins)"
+        #     )
+        # except Exception as e:
+        #      raise HTTPException(status_code=402, detail=f"Payment failed: {str(e)}")
         
         # Create job
         print("📝 [JOBS] Creating DB record...")
