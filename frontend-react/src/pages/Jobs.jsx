@@ -21,7 +21,7 @@ export default function Jobs() {
             try {
                 const { data } = await api.get('/jobs/', { params: { _t: Date.now() } });
                 if (isMounted) {
-                    setJobs(data);
+                    setJobs(Array.isArray(data) ? data : (data.jobs || data.items || []));
                     // Update selectedJob if it's open (to get latest status)
                     if (selectedJob) {
                         const updated = data.find(j => j.id === selectedJob.id);
@@ -117,7 +117,7 @@ export default function Jobs() {
 
             // Refresh list
             const { data } = await api.get('/jobs/', { params: { _t: Date.now() } });
-            setJobs(data);
+            setJobs(Array.isArray(data) ? data : (data.jobs || data.items || []));
 
             // Update modal state if needed
             if (selectedJob && selectedJob.id === job.id) {
